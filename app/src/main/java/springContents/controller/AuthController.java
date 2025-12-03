@@ -1,0 +1,168 @@
+package springContents.controller;
+
+import jakarta.servlet.http.HttpSession;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import springContents.dao.InstitutionDAO;
+import springContents.dao.UserDAO;
+import springContents.model.Institution;
+import springContents.model.User;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api")
+public class AuthController {
+    
+    private final UserDAO userDAO;
+    private final InstitutionDAO institutionDAO;
+    
+    @Autowired
+    public AuthController(UserDAO userDAO, InstitutionDAO institutionDAO) {
+        this.userDAO = userDAO;
+        this.institutionDAO = institutionDAO;
+    }
+    
+    @PostMapping("/login")
+    public ResponseEntity<Map<String, Object>> login(@RequestBody Map<String, String> credentials, HttpSession session) {
+        String username = credentials.get("username");
+        String password = credentials.get("password");
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        if (username == null || password == null || username.trim().isEmpty() || password.trim().isEmpty()) {
+            response.put("success", false);
+            response.put("message", "Username and password are required");
+            return ResponseEntity.badRequest().body(response);
+        }
+        
+        User user = userDAO.authenticateUser(username, password);
+        
+        if (user != null) {
+            session.setAttribute("user", user);
+            session.setAttribute("username", user.getUsername());
+            response.put("success", true);
+            response.put("username", user.getUsername());
+            return ResponseEntity.ok(response);
+        } else {
+            response.put("success", false);
+            response.put("message", "Invalid username or password");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+        }
+    }
+    
+    @PostMapping("/create-account")
+    public ResponseEntity<Map<String, Object>> createAccount(@RequestBody Map<String, Object> accountData, HttpSession session) {
+        Map<String, Object> response = new HashMap<>();
+        Map<String, String> errors = new HashMap<>();
+        
+        // Extract and validate required fields
+        String username = (String) accountData.get("username");
+        String password = (String) accountData.get("password");
+        String title = (String) accountData.get("title");
+        String firstName = (String) accountData.get("firstName");
+        String lastName = (String) accountData.get("lastName");
+        String email = (String) accountData.get("email");
+        @SuppressWarnings("unchecked")
+        List<Long> institutionIds = (List<Long>) accountData.get("institutions");
+        
+        // Validate required fields
+        if (username == null || username.trim().isEmpty()) {
+            errors.put("username", "Username is required");
+        } else if (userDAO.usernameExists(username)) {
+            errors.put("username", "Username already taken");
+        }
+        
+        if (password == null || password.trim().isEmpty()) {
+            errors.put("password", "Password is required");
+        }
+        
+        if (title == null || title.trim().isEmpty()) {
+            errors.put("title", "Title is required");
+        }
+        
+        if (firstName == null || firstName.trim().isEmpty()) {
+            errors.put("firstName", "First name is required");
+        }
+        
+        if (lastName == null || lastName.trim().isEmpty()) {
+            errors.put("lastName", "Last name is required");
+        }
+        
+        if (email == null || email.trim().isEmpty()) {
+            errors.put("email", "Email is required");
+        } else if (!isValidEmail(email)) {
+            errors.put("email", "Please enter a valid email address");
+        } else if (userDAO.emailExists(email)) {
+            errors.put("email", "Email already taken");
+        }
+        
+        if (!errors.isEmpty()) {
+            response.put("success", false);
+            response.put("errors", errors);
+            return ResponseEntity.badRequest().body(response);
+        }
+        
+        // Create user
+        try {
+            User user = userDAO.createUser(username, password, title, firstName, lastName, email);
+            
+            // Associate with institutions if provided
+            if (institutionIds != null && !institutionIds.isEmpty()) {
+                for (Long instId : institutionIds) {
+                    userDAO.associateUserWithInstitution(user.getUserId(), instId);
+                }
+            }
+            
+            // Set session
+            session.setAttribute("user", user);
+            session.setAttribute("username", user.getUsername());
+            
+            response.put("success", true);
+            response.put("username", user.getUsername());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Error creating account: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+    
+    @GetMapping("/institutions")
+    public ResponseEntity<List<Institution>> getInstitutions() {
+        List<Institution> institutions = institutionDAO.getAllInstitutions();
+        return ResponseEntity.ok(institutions);
+    }
+    
+    @GetMapping("/current-user")
+    public ResponseEntity<Map<String, Object>> getCurrentUser(HttpSession session) {
+        Map<String, Object> response = new HashMap<>();
+        User user = (User) session.getAttribute("user");
+        
+        if (user != null) {
+            response.put("loggedIn", true);
+            response.put("username", user.getUsername());
+        } else {
+            response.put("loggedIn", false);
+        }
+        
+        return ResponseEntity.ok(response);
+    }
+    
+    @PostMapping("/logout")
+    public ResponseEntity<Map<String, Object>> logout(HttpSession session) {
+        session.invalidate();
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        return ResponseEntity.ok(response);
+    }
+    
+    private boolean isValidEmail(String email) {
+        return email != null && email.contains("@") && email.contains(".");
+    }
+}
+

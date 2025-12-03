@@ -22,6 +22,7 @@ dependencies {
     implementation(platform("org.springframework.boot:spring-boot-dependencies:3.4.3"))
     implementation("org.springframework.boot:spring-boot-starter-web")    // web communication
     implementation('org.springframework.boot:spring-boot-starter-test')   // unit tests that work with MVC
+    implementation('org.springframework.security:spring-security-crypto:6.4.1')  // BCrypt password hashing
 }
 
 testing {
