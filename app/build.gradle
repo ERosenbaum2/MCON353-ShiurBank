@@ -19,10 +19,12 @@ dependencies {
     implementation 'software.amazon.awssdk:rds:2.39.2'
     implementation 'org.slf4j:slf4j-api:2.0.13'
     implementation 'com.mysql:mysql-connector-j:8.3.0'
-    implementation(platform("org.springframework.boot:spring-boot-dependencies:3.4.3"))
-    implementation("org.springframework.boot:spring-boot-starter-web")    // web communication
-    implementation('org.springframework.boot:spring-boot-starter-test')   // unit tests that work with MVC
-    implementation('org.springframework.security:spring-security-crypto:6.4.1')  // BCrypt password hashing
+
+    implementation platform("org.springframework.boot:spring-boot-dependencies:3.4.3")
+    implementation "org.springframework.boot:spring-boot-starter-web"
+    implementation "org.springframework.boot:spring-boot-starter-jdbc"
+    implementation "org.springframework.boot:spring-boot-starter-test"
+    implementation "org.springframework.security:spring-security-crypto:6.4.1"
 }
 
 testing {

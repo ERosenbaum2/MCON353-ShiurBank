@@ -16,7 +16,7 @@ public class DatabaseConfig {
     @Bean
     public DataSource dataSource() throws IOException {
         Properties credentials = new Properties();
-        credentials.load(new FileInputStream("app/dbcredentials.properties"));
+        credentials.load(new FileInputStream("dbcredentials.properties"));
         
         String endpoint = credentials.getProperty("db_connection");
         String database = credentials.getProperty("database");

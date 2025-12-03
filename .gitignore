@@ -3,6 +3,7 @@ out/
 !**/src/main/**/out/
 !**/src/test/**/out/
 app/dbcredentials.properties
+app/src/main/resources/dbcredentials.properties
 
 ### Eclipse ###
 .apt_generated
