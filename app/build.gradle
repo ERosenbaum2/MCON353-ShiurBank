@@ -20,9 +20,8 @@ dependencies {
     implementation 'org.slf4j:slf4j-api:2.0.13'
     implementation 'com.mysql:mysql-connector-j:8.3.0'
     implementation(platform("org.springframework.boot:spring-boot-dependencies:3.4.3"))
-    implementation("org.springframework.boot:spring-boot-starter")
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
-    //implementation libs.guava
+    implementation("org.springframework.boot:spring-boot-starter-web")    // web communication
+    implementation('org.springframework.boot:spring-boot-starter-test')   // unit tests that work with MVC
 }
 
 testing {

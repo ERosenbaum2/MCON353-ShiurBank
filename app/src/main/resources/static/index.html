@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShiurBank - Home</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<!-- User greeting (shown when logged in) -->
+<div id="user-greeting" class="hidden">
+    <p>Hello <span id="username-display"></span></p>
+</div>
+
+<!-- Main content -->
+<div id="main-content">
+    <header>
+        <h1>ShiurBank</h1>
+    </header>
+
+    <main>
+        <div class="homepage-content">
+            <h2>Welcome to ShiurBank</h2>
+            <p>Your source for Shiurim</p>
+            <button id="login-btn" class="btn-primary" onclick="openModal()">Login/Create Account</button>
+        </div>
+    </main>
+</div>
+
+<!-- Login/Create Account Modal -->
+<div id="modal-overlay" class="modal-overlay hidden">
+    <div class="modal-content">
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+
+        <!-- Tab Toggle -->
+        <div class="tab-container">
+            <input type="radio" id="login-tab" name="modal-tab" checked>
+            <label for="login-tab" class="tab-label">Login</label>
+
+            <input type="radio" id="create-tab" name="modal-tab">
+            <label for="create-tab" class="tab-label">Create Account</label>
+        </div>
+
+        <!-- Login Form -->
+        <div class="tab-content" id="login-content">
+            <form id="login-form" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="login-username">Username:</label>
+                    <input type="text" id="login-username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Password:</label>
+                    <input type="password" id="login-password" name="password" required>
+                </div>
+                <button type="submit" class="btn-primary">Login</button>
+            </form>
+        </div>
+
+        <!-- Create Account Form -->
+        <div class="tab-content" id="create-content">
+            <form id="create-account-form" onsubmit="handleCreateAccount(event)">
+                <div class="form-group">
+                    <label for="name">Name:</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" name="username" required onblur="checkUsernameAvailability()">
+                    <span class="error-message" id="username-error"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email Address:</label>
+                    <input type="email" id="email" name="email" required onblur="checkEmailAvailability()">
+                    <span class="error-message" id="email-error"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="institutions-container">Associated Institutions (optional):</label>
+                    <div id="institutions-container">
+                        <div class="institution-row">
+                            <input type="text" class="institution-input" placeholder="Enter institution name">
+                            <button type="button" class="btn-delete" onclick="removeInstitution(this)" title="Remove institution">×</button>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-secondary" onclick="addInstitutionField()">Add Another Institution</button>
+                </div>
+
+                <button type="submit" class="btn-primary">Create Account</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Modal functions
+    function openModal() {
+        document.getElementById('modal-overlay').classList.remove('hidden');
+    }
+
+    function closeModal() {
+        document.getElementById('modal-overlay').classList.add('hidden');
+        // Reset forms
+        document.getElementById('login-form').reset();
+        document.getElementById('create-account-form').reset();
+        // Clear error messages
+        document.getElementById('username-error').textContent = '';
+        document.getElementById('email-error').textContent = '';
+        // Reset institutions
+        const container = document.getElementById('institutions-container');
+        container.innerHTML = '<div class="institution-row"><input type="text" class="institution-input" placeholder="Enter institution name"><button type="button" class="btn-delete" onclick="removeInstitution(this)" title="Remove institution">×</button></div>';
+    }
+
+    // Close modal when clicking outside
+    document.getElementById('modal-overlay').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeModal();
+        }
+    });
+
+    // Tab switching (handled by CSS, but we can add JS if needed)
+    document.getElementById('login-tab').addEventListener('change', function() {
+        if (this.checked) {
+            document.getElementById('login-content').style.display = 'block';
+            document.getElementById('create-content').style.display = 'none';
+        }
+    });
+
+    document.getElementById('create-tab').addEventListener('change', function() {
+        if (this.checked) {
+            document.getElementById('login-content').style.display = 'none';
+            document.getElementById('create-content').style.display = 'block';
+        }
+    });
+
+    // Initialize tab display
+    document.getElementById('login-content').style.display = 'block';
+    document.getElementById('create-content').style.display = 'none';
+
+    // Form handlers
+    function handleLogin(event) {
+        event.preventDefault();
+        const username = document.getElementById('login-username').value;
+        // Simulate login - in real implementation, this would call backend
+        showUserGreeting(username);
+        closeModal();
+    }
+
+    function handleCreateAccount(event) {
+        event.preventDefault();
+        const username = document.getElementById('username').value;
+        // Simulate account creation - in real implementation, this would call backend
+        showUserGreeting(username);
+        closeModal();
+    }
+
+    function showUserGreeting(username) {
+        document.getElementById('username-display').textContent = username;
+        document.getElementById('user-greeting').classList.remove('hidden');
+        document.getElementById('main-content').style.display = 'none';
+    }
+
+    // Validation functions (placeholder - would call backend in real implementation)
+    function checkUsernameAvailability() {
+        const username = document.getElementById('username').value;
+        const errorSpan = document.getElementById('username-error');
+        // Placeholder - in real implementation, this would check with backend
+        // For now, just clear any previous error
+        if (username) {
+            // Simulate check - in real app, this would be an API call
+            // errorSpan.textContent = 'Username already taken';
+        }
+    }
+
+    function checkEmailAvailability() {
+        const email = document.getElementById('email').value;
+        const errorSpan = document.getElementById('email-error');
+        // Placeholder - in real implementation, this would check with backend
+        // For now, just validate email format
+        if (email && !email.includes('@')) {
+            errorSpan.textContent = 'Please enter a valid email address';
+        } else {
+            errorSpan.textContent = '';
+        }
+    }
+
+    // Add institution field
+    function addInstitutionField() {
+        const container = document.getElementById('institutions-container');
+        const row = document.createElement('div');
+        row.className = 'institution-row';
+
+        const newInput = document.createElement('input');
+        newInput.type = 'text';
+        newInput.className = 'institution-input';
+        newInput.placeholder = 'Enter institution name';
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.className = 'btn-delete';
+        deleteBtn.textContent = '×';
+        deleteBtn.title = 'Remove institution';
+        deleteBtn.onclick = function() { removeInstitution(this); };
+
+        row.appendChild(newInput);
+        row.appendChild(deleteBtn);
+        container.appendChild(row);
+    }
+
+    // Remove institution field
+    function removeInstitution(button) {
+        const row = button.parentElement;
+        const container = document.getElementById('institutions-container');
+        // Only remove if there's more than one institution row
+        if (container.children.length > 1) {
+            row.remove();
+        }
+    }
+</script>
+</body>
+</html>

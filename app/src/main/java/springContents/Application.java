@@ -10,7 +10,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class Application {
 
     public static void main(String[] args) {
-//        StatusController.setSystemInfoFacade(new ServerStatusTrueDetailsFacade()); //This is where it gets decided which implementation of the facade to use
         SpringApplication.run(Application.class, args);
     }
 }
