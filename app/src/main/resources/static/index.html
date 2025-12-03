@@ -60,36 +60,54 @@
         <div class="tab-content" id="create-content">
             <form id="create-account-form" onsubmit="handleCreateAccount(event)">
                 <div class="form-group">
-                    <label for="name">Name:</label>
-                    <input type="text" id="name" name="name" required>
+                    <label for="title">Title:</label>
+                    <select id="title" name="title" required>
+                        <option value="">Select a title</option>
+                        <option value="Mr">Mr</option>
+                        <option value="Mrs">Mrs</option>
+                        <option value="Ms">Ms</option>
+                        <option value="Rabbi">Rabbi</option>
+                        <option value="Dr">Dr</option>
+                    </select>
+                    <span class="error-message" id="title-error"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="firstName">First Name:</label>
+                    <input type="text" id="firstName" name="firstName" required>
+                    <span class="error-message" id="firstName-error"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="lastName">Last Name:</label>
+                    <input type="text" id="lastName" name="lastName" required>
+                    <span class="error-message" id="lastName-error"></span>
                 </div>
 
                 <div class="form-group">
                     <label for="username">Username:</label>
-                    <input type="text" id="username" name="username" required onblur="checkUsernameAvailability()">
+                    <input type="text" id="username" name="username" required>
                     <span class="error-message" id="username-error"></span>
                 </div>
 
                 <div class="form-group">
                     <label for="password">Password:</label>
                     <input type="password" id="password" name="password" required>
+                    <span class="error-message" id="password-error"></span>
                 </div>
 
                 <div class="form-group">
                     <label for="email">Email Address:</label>
-                    <input type="email" id="email" name="email" required onblur="checkEmailAvailability()">
+                    <input type="email" id="email" name="email" required>
                     <span class="error-message" id="email-error"></span>
                 </div>
 
                 <div class="form-group">
-                    <label for="institutions-container">Associated Institutions (optional):</label>
-                    <div id="institutions-container">
-                        <div class="institution-row">
-                            <input type="text" class="institution-input" placeholder="Enter institution name">
-                            <button type="button" class="btn-delete" onclick="removeInstitution(this)" title="Remove institution">×</button>
-                        </div>
-                    </div>
-                    <button type="button" class="btn-secondary" onclick="addInstitutionField()">Add Another Institution</button>
+                    <label for="institutions">Associated Institutions (optional):</label>
+                    <select id="institutions" name="institutions" multiple size="5">
+                        <!-- Options will be loaded dynamically -->
+                    </select>
+                    <small style="display: block; margin-top: 0.25rem; color: #666;">Hold Ctrl (or Cmd on Mac) to select multiple institutions</small>
                 </div>
 
                 <button type="submit" class="btn-primary">Create Account</button>
@@ -109,12 +127,12 @@
         // Reset forms
         document.getElementById('login-form').reset();
         document.getElementById('create-account-form').reset();
-        // Clear error messages
-        document.getElementById('username-error').textContent = '';
-        document.getElementById('email-error').textContent = '';
-        // Reset institutions
-        const container = document.getElementById('institutions-container');
-        container.innerHTML = '<div class="institution-row"><input type="text" class="institution-input" placeholder="Enter institution name"><button type="button" class="btn-delete" onclick="removeInstitution(this)" title="Remove institution">×</button></div>';
+        // Clear all error messages
+        const errorMessages = document.querySelectorAll('.error-message');
+        errorMessages.forEach(span => span.textContent = '');
+        // Clear error styling
+        const inputs = document.querySelectorAll('#create-account-form input, #create-account-form select');
+        inputs.forEach(input => input.classList.remove('error'));
     }
 
     // Close modal when clicking outside
@@ -143,85 +161,161 @@
     document.getElementById('login-content').style.display = 'block';
     document.getElementById('create-content').style.display = 'none';
 
-    // Form handlers
-    function handleLogin(event) {
-        event.preventDefault();
-        const username = document.getElementById('login-username').value;
-        // Simulate login - in real implementation, this would call backend
-        showUserGreeting(username);
-        closeModal();
+    // Load institutions on page load
+    let institutions = [];
+    async function loadInstitutions() {
+        try {
+            const response = await fetch('/api/institutions');
+            if (response.ok) {
+                institutions = await response.json();
+                const select = document.getElementById('institutions');
+                select.innerHTML = '';
+                institutions.forEach(inst => {
+                    const option = document.createElement('option');
+                    option.value = inst.instId;
+                    option.textContent = inst.name;
+                    select.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('Error loading institutions:', error);
+        }
     }
 
-    function handleCreateAccount(event) {
+    // Check current user session on page load
+    async function checkCurrentUser() {
+        try {
+            const response = await fetch('/api/current-user');
+            if (response.ok) {
+                const data = await response.json();
+                if (data.loggedIn) {
+                    showUserGreeting(data.username);
+                }
+            }
+        } catch (error) {
+            console.error('Error checking current user:', error);
+        }
+    }
+
+    // Form handlers
+    async function handleLogin(event) {
         event.preventDefault();
+        const username = document.getElementById('login-username').value;
+        const password = document.getElementById('login-password').value;
+
+        try {
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, password })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showUserGreeting(data.username);
+                closeModal();
+            } else {
+                alert(data.message || 'Login failed');
+            }
+        } catch (error) {
+            console.error('Error during login:', error);
+            alert('An error occurred during login. Please try again.');
+        }
+    }
+
+    async function handleCreateAccount(event) {
+        event.preventDefault();
+        
+        // Clear previous errors
+        clearErrors();
+        
+        // Get form values
+        const title = document.getElementById('title').value;
+        const firstName = document.getElementById('firstName').value;
+        const lastName = document.getElementById('lastName').value;
         const username = document.getElementById('username').value;
-        // Simulate account creation - in real implementation, this would call backend
-        showUserGreeting(username);
-        closeModal();
+        const password = document.getElementById('password').value;
+        const email = document.getElementById('email').value;
+        const institutionSelect = document.getElementById('institutions');
+        const selectedInstitutions = Array.from(institutionSelect.selectedOptions).map(opt => parseInt(opt.value));
+
+        const accountData = {
+            title: title,
+            firstName: firstName,
+            lastName: lastName,
+            username: username,
+            password: password,
+            email: email,
+            institutions: selectedInstitutions
+        };
+
+        try {
+            const response = await fetch('/api/create-account', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(accountData)
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showUserGreeting(data.username);
+                closeModal();
+            } else {
+                // Display validation errors
+                if (data.errors) {
+                    displayErrors(data.errors);
+                } else {
+                    alert(data.message || 'Account creation failed');
+                }
+            }
+        } catch (error) {
+            console.error('Error during account creation:', error);
+            alert('An error occurred during account creation. Please try again.');
+        }
+    }
+
+    function clearErrors() {
+        const errorMessages = document.querySelectorAll('.error-message');
+        errorMessages.forEach(span => span.textContent = '');
+        const inputs = document.querySelectorAll('#create-account-form input, #create-account-form select');
+        inputs.forEach(input => input.classList.remove('error'));
+    }
+
+    function displayErrors(errors) {
+        for (const [field, message] of Object.entries(errors)) {
+            const errorSpan = document.getElementById(field + '-error');
+            const input = document.getElementById(field);
+            if (errorSpan) {
+                errorSpan.textContent = message;
+            }
+            if (input) {
+                input.classList.add('error');
+            }
+        }
     }
 
     function showUserGreeting(username) {
         document.getElementById('username-display').textContent = username;
         document.getElementById('user-greeting').classList.remove('hidden');
         document.getElementById('main-content').style.display = 'none';
-    }
-
-    // Validation functions (placeholder - would call backend in real implementation)
-    function checkUsernameAvailability() {
-        const username = document.getElementById('username').value;
-        const errorSpan = document.getElementById('username-error');
-        // Placeholder - in real implementation, this would check with backend
-        // For now, just clear any previous error
-        if (username) {
-            // Simulate check - in real app, this would be an API call
-            // errorSpan.textContent = 'Username already taken';
+        // Hide login button
+        const loginBtn = document.getElementById('login-btn');
+        if (loginBtn) {
+            loginBtn.style.display = 'none';
         }
     }
 
-    function checkEmailAvailability() {
-        const email = document.getElementById('email').value;
-        const errorSpan = document.getElementById('email-error');
-        // Placeholder - in real implementation, this would check with backend
-        // For now, just validate email format
-        if (email && !email.includes('@')) {
-            errorSpan.textContent = 'Please enter a valid email address';
-        } else {
-            errorSpan.textContent = '';
-        }
-    }
-
-    // Add institution field
-    function addInstitutionField() {
-        const container = document.getElementById('institutions-container');
-        const row = document.createElement('div');
-        row.className = 'institution-row';
-
-        const newInput = document.createElement('input');
-        newInput.type = 'text';
-        newInput.className = 'institution-input';
-        newInput.placeholder = 'Enter institution name';
-
-        const deleteBtn = document.createElement('button');
-        deleteBtn.type = 'button';
-        deleteBtn.className = 'btn-delete';
-        deleteBtn.textContent = '×';
-        deleteBtn.title = 'Remove institution';
-        deleteBtn.onclick = function() { removeInstitution(this); };
-
-        row.appendChild(newInput);
-        row.appendChild(deleteBtn);
-        container.appendChild(row);
-    }
-
-    // Remove institution field
-    function removeInstitution(button) {
-        const row = button.parentElement;
-        const container = document.getElementById('institutions-container');
-        // Only remove if there's more than one institution row
-        if (container.children.length > 1) {
-            row.remove();
-        }
-    }
+    // Initialize on page load
+    window.addEventListener('DOMContentLoaded', function() {
+        loadInstitutions();
+        checkCurrentUser();
+    });
 </script>
 </body>
 </html>
