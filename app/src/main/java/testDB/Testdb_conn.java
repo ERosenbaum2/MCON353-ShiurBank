@@ -8,7 +8,7 @@ import java.util.Properties;
 public class Testdb_conn {
     public static void main(String[] args) throws IOException {
         Properties credentials = new Properties();
-        credentials.load(new FileInputStream("dbcredentials.properties"));
+        credentials.load(new FileInputStream("app/dbcredentials.properties"));
         String endpoint = credentials.getProperty("db_connection");
         String database = credentials.getProperty("database");
         String username = credentials.getProperty("user");
