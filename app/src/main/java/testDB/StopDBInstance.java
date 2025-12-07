@@ -18,7 +18,7 @@ public class StopDBInstance {
 
     public static void main(String[] args) throws IOException {
         Properties credentials = new Properties();
-        credentials.load(new FileInputStream("app/dbcredentials.properties"));
+        credentials.load(new FileInputStream("app/src/main/resources/dbcredentials.properties"));
         logger.info("Credentials received");
 
         final String dbInstanceIdentifier = credentials.getProperty("instance");
