@@ -34,17 +34,24 @@ header h1 {
     background-color: #3498db;
     color: white;
     padding: 1rem 2rem;
-    text-align: center;
-    font-size: 1.2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 #user-greeting p {
     margin: 0;
+    font-size: 1.2rem;
 }
 
 #username-display {
     font-weight: 600;
+}
+
+#logout-btn {
+    padding: 0.5rem 1.5rem;
+    font-size: 0.95rem;
 }
 
 /* Main Content */
@@ -339,5 +346,15 @@ main {
     .modal-content {
         padding: 1.5rem;
         width: 95%;
+    }
+
+    #user-greeting {
+        flex-direction: column;
+        gap: 0.75rem;
+        text-align: center;
+    }
+
+    #logout-btn {
+        width: 100%;
     }
 }
