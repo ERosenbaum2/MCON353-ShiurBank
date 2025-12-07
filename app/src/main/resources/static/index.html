@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ShiurBank - Home</title>
+    <link rel="icon" type="image/png" href="ShiurBank Logo No Words.png">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -16,11 +17,15 @@
 <!-- Main content -->
 <div id="main-content">
     <header>
-        <h1>ShiurBank</h1>
+        <div class="header-content">
+            <img src="ShiurBank Logo No Words.png" alt="ShiurBank Logo" class="header-logo">
+            <h1>ShiurBank</h1>
+        </div>
     </header>
 
     <main>
         <div class="homepage-content">
+            <img src="Full ShiurBank Logo.png" alt="ShiurBank" class="homepage-logo">
             <h2>Welcome to ShiurBank</h2>
             <p>Your source for Shiurim</p>
             <button id="login-btn" class="btn-primary" onclick="openModal()">Login/Create Account</button>
@@ -330,6 +335,7 @@
                 // After 3 seconds, reset to initial view
                 setTimeout(() => {
                     homepageContent.innerHTML = `
+                        <img src="Full ShiurBank Logo.png" alt="ShiurBank" class="homepage-logo">
                         <h2>Welcome to ShiurBank</h2>
                         <p>Your source for Shiurim</p>
                         <button id="login-btn" class="btn-primary" onclick="openModal()">Login/Create Account</button>
