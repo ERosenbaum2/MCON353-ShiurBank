@@ -1,6 +1,5 @@
 package springContents.config;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
@@ -16,7 +15,7 @@ public class DatabaseConfig {
     @Bean
     public DataSource dataSource() throws IOException {
         Properties credentials = new Properties();
-        credentials.load(new FileInputStream("app/dbcredentials.properties"));
+        credentials.load(new FileInputStream("dbcredentials.properties"));
         
         String endpoint = credentials.getProperty("db_connection");
         String database = credentials.getProperty("database");
