@@ -18,12 +18,12 @@ CREATE TABLE topics (
     name        VARCHAR(200) NOT NULL UNIQUE
 ) ENGINE=InnoDB;
 
-CREATE TABLE institution (
+CREATE TABLE institutions (
     inst_id     BIGINT AUTO_INCREMENT PRIMARY KEY,
     name        VARCHAR(255) NOT NULL UNIQUE
 ) ENGINE=InnoDB;
 
-CREATE TABLE rebbi (
+CREATE TABLE rebbeim (
     rebbi_id    BIGINT AUTO_INCREMENT PRIMARY KEY,
     title       VARCHAR(50) NOT NULL,
     fname       VARCHAR(100) NOT NULL,
@@ -44,7 +44,7 @@ CREATE TABLE shiur_series (
     CONSTRAINT fk_series_inst FOREIGN KEY (inst_id) REFERENCES institution(inst_id) ON DELETE RESTRICT
 ) ENGINE=InnoDB;
 
-CREATE TABLE gabbai (
+CREATE TABLE gabbaim (
     gabbai_id   BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id     BIGINT NOT NULL,
     series_id   BIGINT NOT NULL,
@@ -111,7 +111,7 @@ CREATE TABLE subscribers (
     CONSTRAINT uq_subscriber UNIQUE (user_id, series_id, subscription_type_id)
 ) ENGINE=InnoDB;
 
-CREATE TABLE favorite_shiur (
+CREATE TABLE favorite_shiurim (
     favorite_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id     BIGINT NOT NULL,
     series_id   BIGINT NOT NULL,
