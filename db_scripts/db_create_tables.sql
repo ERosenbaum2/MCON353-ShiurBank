@@ -18,12 +18,12 @@ CREATE TABLE topics (
     name        VARCHAR(200) NOT NULL UNIQUE
 ) ENGINE=InnoDB;
 
-CREATE TABLE institution (
+CREATE TABLE institutions (
     inst_id     BIGINT AUTO_INCREMENT PRIMARY KEY,
     name        VARCHAR(255) NOT NULL UNIQUE
 ) ENGINE=InnoDB;
 
-CREATE TABLE rebbi (
+CREATE TABLE rebbeim (
     rebbi_id    BIGINT AUTO_INCREMENT PRIMARY KEY,
     title       VARCHAR(50) NOT NULL,
     fname       VARCHAR(100) NOT NULL,
@@ -39,12 +39,12 @@ CREATE TABLE shiur_series (
     requires_permission    BOOLEAN NOT NULL DEFAULT FALSE,
     inst_id                BIGINT NOT NULL,
     description            TEXT NULL,
-    CONSTRAINT fk_series_rebbi FOREIGN KEY (rebbi_id) REFERENCES rebbi(rebbi_id) ON DELETE RESTRICT,
+    CONSTRAINT fk_series_rebbi FOREIGN KEY (rebbi_id) REFERENCES rebbeim(rebbi_id) ON DELETE RESTRICT,
     CONSTRAINT fk_series_topic FOREIGN KEY (topic_id) REFERENCES topics(topic_id) ON DELETE RESTRICT,
-    CONSTRAINT fk_series_inst FOREIGN KEY (inst_id) REFERENCES institution(inst_id) ON DELETE RESTRICT
+    CONSTRAINT fk_series_inst FOREIGN KEY (inst_id) REFERENCES institutions(inst_id) ON DELETE RESTRICT
 ) ENGINE=InnoDB;
 
-CREATE TABLE gabbai (
+CREATE TABLE gabbaim (
     gabbai_id   BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id     BIGINT NOT NULL,
     series_id   BIGINT NOT NULL,
@@ -82,7 +82,7 @@ CREATE TABLE user_institution_assoc (
     user_id     BIGINT NOT NULL,
     inst_id     BIGINT NOT NULL,
     CONSTRAINT fk_uia_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-    CONSTRAINT fk_uia_inst FOREIGN KEY (inst_id) REFERENCES institution(inst_id) ON DELETE RESTRICT,
+    CONSTRAINT fk_uia_inst FOREIGN KEY (inst_id) REFERENCES institutions(inst_id) ON DELETE RESTRICT,
     CONSTRAINT uq_user_inst UNIQUE (user_id, inst_id)
 ) ENGINE=InnoDB;
 
@@ -90,8 +90,8 @@ CREATE TABLE rebbi_institution_assoc (
     assoc_id    BIGINT AUTO_INCREMENT PRIMARY KEY,
     rebbi_id    BIGINT NOT NULL,
     inst_id     BIGINT NOT NULL,
-    CONSTRAINT fk_ria_rebbi FOREIGN KEY (rebbi_id) REFERENCES rebbi(rebbi_id) ON DELETE CASCADE,
-    CONSTRAINT fk_ria_inst FOREIGN KEY (inst_id) REFERENCES institution(inst_id) ON DELETE RESTRICT,
+    CONSTRAINT fk_ria_rebbi FOREIGN KEY (rebbi_id) REFERENCES rebbeim(rebbi_id) ON DELETE CASCADE,
+    CONSTRAINT fk_ria_inst FOREIGN KEY (inst_id) REFERENCES institutions(inst_id) ON DELETE RESTRICT,
     CONSTRAINT uq_rebbi_inst UNIQUE (rebbi_id, inst_id)
 ) ENGINE=InnoDB;
 
@@ -111,7 +111,7 @@ CREATE TABLE subscribers (
     CONSTRAINT uq_subscriber UNIQUE (user_id, series_id, subscription_type_id)
 ) ENGINE=InnoDB;
 
-CREATE TABLE favorite_shiur (
+CREATE TABLE favorite_shiurim (
     favorite_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id     BIGINT NOT NULL,
     series_id   BIGINT NOT NULL,
