@@ -40,7 +40,7 @@ public class InstitutionDAO {
     }
     
     public Institution getInstitutionById(Long instId) {
-        String sql = "SELECT inst_id, name FROM institution WHERE inst_id = ?";
+        String sql = "SELECT inst_id, name FROM institutions WHERE inst_id = ?";
         
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
