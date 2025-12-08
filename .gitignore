@@ -4,6 +4,10 @@ out/
 !**/src/main/**/out/
 !**/src/test/**/out/
 app/dbcredentials.properties
+app/src/main/resources/dbcredentials.properties
+plugin/
+.idea/
+gradle/
 
 ### Eclipse ###
 .apt_generated

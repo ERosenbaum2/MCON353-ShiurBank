@@ -4,22 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ShiurBank - Home</title>
+    <link rel="icon" type="image/png" href="ShiurBank Logo No Words.png">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <!-- User greeting (shown when logged in) -->
 <div id="user-greeting" class="hidden">
     <p>Hello <span id="username-display"></span></p>
+    <button id="logout-btn" class="btn-primary" onclick="handleLogout()">Logout</button>
 </div>
 
 <!-- Main content -->
 <div id="main-content">
     <header>
-        <h1>ShiurBank</h1>
+        <div class="header-content">
+            <img src="ShiurBank Logo No Words.png" alt="ShiurBank Logo" class="header-logo">
+            <h1>ShiurBank</h1>
+        </div>
     </header>
 
     <main>
         <div class="homepage-content">
+            <img src="Full ShiurBank Logo.png" alt="ShiurBank" class="homepage-logo">
             <h2>Welcome to ShiurBank</h2>
             <p>Your source for Shiurim</p>
             <button id="login-btn" class="btn-primary" onclick="openModal()">Login/Create Account</button>
@@ -228,10 +234,10 @@
 
     async function handleCreateAccount(event) {
         event.preventDefault();
-        
+
         // Clear previous errors
         clearErrors();
-        
+
         // Get form values
         const title = document.getElementById('title').value;
         const firstName = document.getElementById('firstName').value;
@@ -304,10 +310,43 @@
         document.getElementById('username-display').textContent = username;
         document.getElementById('user-greeting').classList.remove('hidden');
         document.getElementById('main-content').style.display = 'none';
-        // Hide login button
-        const loginBtn = document.getElementById('login-btn');
-        if (loginBtn) {
-            loginBtn.style.display = 'none';
+    }
+
+    async function handleLogout() {
+        try {
+            const response = await fetch('/api/logout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Hide the user greeting
+                document.getElementById('user-greeting').classList.add('hidden');
+
+                // Show main content with logout message
+                document.getElementById('main-content').style.display = 'block';
+                const homepageContent = document.querySelector('.homepage-content');
+                homepageContent.innerHTML = '<h2>You\'ve been logged out successfully</h2>';
+
+                // After 3 seconds, reset to initial view
+                setTimeout(() => {
+                    homepageContent.innerHTML = `
+                        <img src="Full ShiurBank Logo.png" alt="ShiurBank" class="homepage-logo">
+                        <h2>Welcome to ShiurBank</h2>
+                        <p>Your source for Shiurim</p>
+                        <button id="login-btn" class="btn-primary" onclick="openModal()">Login/Create Account</button>
+                    `;
+                }, 3000);
+            } else {
+                alert('Logout failed. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error during logout:', error);
+            alert('An error occurred during logout. Please try again.');
         }
     }
 
