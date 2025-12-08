@@ -21,7 +21,7 @@ public class InstitutionDAO {
     
     public List<Institution> getAllInstitutions() {
         List<Institution> institutions = new ArrayList<>();
-        String sql = "SELECT inst_id, name FROM institution ORDER BY name";
+        String sql = "SELECT inst_id, name FROM institutions ORDER BY name";
         
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql);

@@ -39,9 +39,9 @@ CREATE TABLE shiur_series (
     requires_permission    BOOLEAN NOT NULL DEFAULT FALSE,
     inst_id                BIGINT NOT NULL,
     description            TEXT NULL,
-    CONSTRAINT fk_series_rebbi FOREIGN KEY (rebbi_id) REFERENCES rebbi(rebbi_id) ON DELETE RESTRICT,
+    CONSTRAINT fk_series_rebbi FOREIGN KEY (rebbi_id) REFERENCES rebbeim(rebbi_id) ON DELETE RESTRICT,
     CONSTRAINT fk_series_topic FOREIGN KEY (topic_id) REFERENCES topics(topic_id) ON DELETE RESTRICT,
-    CONSTRAINT fk_series_inst FOREIGN KEY (inst_id) REFERENCES institution(inst_id) ON DELETE RESTRICT
+    CONSTRAINT fk_series_inst FOREIGN KEY (inst_id) REFERENCES institutions(inst_id) ON DELETE RESTRICT
 ) ENGINE=InnoDB;
 
 CREATE TABLE gabbaim (
@@ -82,7 +82,7 @@ CREATE TABLE user_institution_assoc (
     user_id     BIGINT NOT NULL,
     inst_id     BIGINT NOT NULL,
     CONSTRAINT fk_uia_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-    CONSTRAINT fk_uia_inst FOREIGN KEY (inst_id) REFERENCES institution(inst_id) ON DELETE RESTRICT,
+    CONSTRAINT fk_uia_inst FOREIGN KEY (inst_id) REFERENCES institutions(inst_id) ON DELETE RESTRICT,
     CONSTRAINT uq_user_inst UNIQUE (user_id, inst_id)
 ) ENGINE=InnoDB;
 
@@ -90,8 +90,8 @@ CREATE TABLE rebbi_institution_assoc (
     assoc_id    BIGINT AUTO_INCREMENT PRIMARY KEY,
     rebbi_id    BIGINT NOT NULL,
     inst_id     BIGINT NOT NULL,
-    CONSTRAINT fk_ria_rebbi FOREIGN KEY (rebbi_id) REFERENCES rebbi(rebbi_id) ON DELETE CASCADE,
-    CONSTRAINT fk_ria_inst FOREIGN KEY (inst_id) REFERENCES institution(inst_id) ON DELETE RESTRICT,
+    CONSTRAINT fk_ria_rebbi FOREIGN KEY (rebbi_id) REFERENCES rebbeim(rebbi_id) ON DELETE CASCADE,
+    CONSTRAINT fk_ria_inst FOREIGN KEY (inst_id) REFERENCES institutions(inst_id) ON DELETE RESTRICT,
     CONSTRAINT uq_rebbi_inst UNIQUE (rebbi_id, inst_id)
 ) ENGINE=InnoDB;
 
