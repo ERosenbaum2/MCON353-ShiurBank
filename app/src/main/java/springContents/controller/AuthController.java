@@ -4,19 +4,25 @@ import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import springContents.dao.InstitutionDAO;
 import springContents.dao.UserDAO;
 import springContents.model.Institution;
 import springContents.model.User;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api")
 public class AuthController {
+    
+    private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
     
     private final UserDAO userDAO;
     private final InstitutionDAO institutionDAO;
@@ -56,6 +62,7 @@ public class AuthController {
     }
     
     @PostMapping("/create-account")
+    @Transactional
     public ResponseEntity<Map<String, Object>> createAccount(@RequestBody Map<String, Object> accountData, HttpSession session) {
         Map<String, Object> response = new HashMap<>();
         Map<String, String> errors = new HashMap<>();
@@ -67,8 +74,26 @@ public class AuthController {
         String firstName = (String) accountData.get("firstName");
         String lastName = (String) accountData.get("lastName");
         String email = (String) accountData.get("email");
-        @SuppressWarnings("unchecked")
-        List<Long> institutionIds = (List<Long>) accountData.get("institutions");
+        
+        // Handle institution IDs - JSON deserializes numbers as Integer, need to convert to Long
+        List<Long> institutionIds = null;
+        Object institutionsObj = accountData.get("institutions");
+        if (institutionsObj != null) {
+            @SuppressWarnings("unchecked")
+            List<Object> institutionsList = (List<Object>) institutionsObj;
+            institutionIds = new ArrayList<>();
+            for (Object instId : institutionsList) {
+                if (instId instanceof Integer) {
+                    institutionIds.add(((Integer) instId).longValue());
+                } else if (instId instanceof Long) {
+                    institutionIds.add((Long) instId);
+                } else if (instId instanceof Number) {
+                    institutionIds.add(((Number) instId).longValue());
+                }
+            }
+        }
+        
+        logger.info("Creating account for username: {}, institutions: {}", username, institutionIds);
         
         // Validate required fields
         if (username == null || username.trim().isEmpty()) {
@@ -110,12 +135,18 @@ public class AuthController {
         // Create user
         try {
             User user = userDAO.createUser(username, password, title, firstName, lastName, email);
+            logger.info("User created with ID: {}", user.getUserId());
             
             // Associate with institutions if provided
             if (institutionIds != null && !institutionIds.isEmpty()) {
+                logger.info("Associating user {} with {} institutions", user.getUserId(), institutionIds.size());
                 for (Long instId : institutionIds) {
+                    logger.info("Associating user {} with institution {}", user.getUserId(), instId);
                     userDAO.associateUserWithInstitution(user.getUserId(), instId);
                 }
+                logger.info("Successfully associated user with all institutions");
+            } else {
+                logger.info("No institutions to associate");
             }
             
             // Set session
@@ -126,6 +157,9 @@ public class AuthController {
             response.put("username", user.getUsername());
             return ResponseEntity.ok(response);
         } catch (Exception e) {
+            logger.error("Error creating account", e);
+            // With @Transactional, if an exception is thrown here, the entire transaction
+            // (including user creation) will be rolled back automatically
             response.put("success", false);
             response.put("message", "Error creating account: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);

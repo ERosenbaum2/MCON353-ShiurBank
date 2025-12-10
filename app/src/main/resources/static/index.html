@@ -109,11 +109,11 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="institutions">Associated Institutions (optional):</label>
-                    <select id="institutions" name="institutions" multiple size="5">
-                        <!-- Options will be loaded dynamically -->
-                    </select>
-                    <small style="display: block; margin-top: 0.25rem; color: #666;">Hold Ctrl (or Cmd on Mac) to select multiple institutions</small>
+                    <label for="institutions-container">Associated Institutions (optional):</label>
+                    <div id="institutions-container" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 0.5rem; border-radius: 4px;">
+                        <!-- Checkboxes will be loaded dynamically -->
+                    </div>
+                    <small style="display: block; margin-top: 0.25rem; color: #666;">Select one or more institutions</small>
                 </div>
 
                 <button type="submit" class="btn-primary">Create Account</button>
@@ -174,14 +174,43 @@
             const response = await fetch('/api/institutions');
             if (response.ok) {
                 institutions = await response.json();
-                const select = document.getElementById('institutions');
-                select.innerHTML = '';
+                console.log('Loaded institutions:', institutions);
+                const container = document.getElementById('institutions-container');
+                if (!container) {
+                    console.error('institutions-container not found!');
+                    return;
+                }
+                container.innerHTML = '';
                 institutions.forEach(inst => {
-                    const option = document.createElement('option');
-                    option.value = inst.instId;
-                    option.textContent = inst.name;
-                    select.appendChild(option);
+                    // Create a wrapper div for each checkbox
+                    const wrapper = document.createElement('div');
+                    wrapper.style.marginBottom = '0.5rem';
+                    
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.value = inst.instId;
+                    checkbox.id = `institution-${inst.instId}`;
+                    checkbox.name = 'institution';
+                    checkbox.style.marginRight = '0.5rem';
+                    checkbox.style.cursor = 'pointer';
+                    
+                    // Add explicit click handler for debugging
+                    checkbox.addEventListener('change', function() {
+                        console.log('Checkbox changed:', this.id, 'checked:', this.checked, 'value:', this.value);
+                    });
+                    
+                    const label = document.createElement('label');
+                    label.setAttribute('for', `institution-${inst.instId}`);
+                    label.textContent = inst.name;
+                    label.style.cursor = 'pointer';
+                    
+                    wrapper.appendChild(checkbox);
+                    wrapper.appendChild(label);
+                    container.appendChild(wrapper);
                 });
+                console.log('Created', institutions.length, 'institution checkboxes');
+            } else {
+                console.error('Failed to load institutions:', response.status);
             }
         } catch (error) {
             console.error('Error loading institutions:', error);
@@ -235,7 +264,20 @@
     async function handleCreateAccount(event) {
         event.preventDefault();
 
-        // Clear previous errors
+        // Get selected institutions from checkboxes BEFORE clearing errors
+        const institutionCheckboxes = document.querySelectorAll('#institutions-container input[type="checkbox"]:checked');
+        console.log('Found', institutionCheckboxes.length, 'checked checkboxes');
+        console.log('All checkboxes:', document.querySelectorAll('#institutions-container input[type="checkbox"]'));
+        
+        const selectedInstitutions = Array.from(institutionCheckboxes).map(cb => {
+            const value = parseInt(cb.value);
+            console.log('Checkbox value:', cb.value, 'parsed as:', value);
+            return value;
+        });
+        
+        console.log('Selected institutions array:', selectedInstitutions);
+
+        // Clear previous errors (AFTER reading checkbox values)
         clearErrors();
 
         // Get form values
@@ -245,8 +287,6 @@
         const username = document.getElementById('username').value;
         const password = document.getElementById('password').value;
         const email = document.getElementById('email').value;
-        const institutionSelect = document.getElementById('institutions');
-        const selectedInstitutions = Array.from(institutionSelect.selectedOptions).map(opt => parseInt(opt.value));
 
         const accountData = {
             title: title,
@@ -257,6 +297,8 @@
             email: email,
             institutions: selectedInstitutions
         };
+        
+        console.log('Sending account data:', accountData);
 
         try {
             const response = await fetch('/api/create-account', {
@@ -291,6 +333,7 @@
         errorMessages.forEach(span => span.textContent = '');
         const inputs = document.querySelectorAll('#create-account-form input, #create-account-form select');
         inputs.forEach(input => input.classList.remove('error'));
+        // Don't clear checkboxes here - that should only happen when the form is reset
     }
 
     function displayErrors(errors) {
