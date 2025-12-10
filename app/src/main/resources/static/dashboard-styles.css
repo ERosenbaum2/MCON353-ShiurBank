@@ -1,0 +1,36 @@
+/* Styles specific to dashboard.html */
+
+/* Dashboard Content */
+.dashboard-content {
+    background-color: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.dashboard-content h2 {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    color: #1B4965;
+}
+
+.dashboard-content p {
+    font-size: 1.1rem;
+    color: #666;
+    line-height: 1.6;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .dashboard-content {
+        padding: 1.5rem;
+    }
+
+    .dashboard-content h2 {
+        font-size: 1.5rem;
+    }
+
+    .dashboard-content p {
+        font-size: 1rem;
+    }
+}

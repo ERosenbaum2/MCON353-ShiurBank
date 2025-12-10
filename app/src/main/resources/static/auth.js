@@ -45,8 +45,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize on page load
     loadInstitutions();
-    checkCurrentUser();
+    checkIfAlreadyLoggedIn();
 });
+
+// Check if user is already logged in
+async function checkIfAlreadyLoggedIn() {
+    try {
+        const response = await fetch('/api/current-user');
+        if (response.ok) {
+            const data = await response.json();
+            if (data.loggedIn) {
+                // User is already logged in, redirect to dashboard
+                window.location.href = '/dashboard.html';
+            }
+        }
+    } catch (error) {
+        console.error('Error checking current user:', error);
+    }
+}
 
 // Load institutions on page load
 let institutions = [];
@@ -93,21 +109,6 @@ async function loadInstitutions() {
     }
 }
 
-// Check current user session on page load
-async function checkCurrentUser() {
-    try {
-        const response = await fetch('/api/current-user');
-        if (response.ok) {
-            const data = await response.json();
-            if (data.loggedIn) {
-                showUserGreeting(data.username);
-            }
-        }
-    } catch (error) {
-        console.error('Error checking current user:', error);
-    }
-}
-
 // Form handlers
 async function handleLogin(event) {
     event.preventDefault();
@@ -126,8 +127,8 @@ async function handleLogin(event) {
         const data = await response.json();
 
         if (data.success) {
-            showUserGreeting(data.username);
-            closeModal();
+            // Redirect to dashboard
+            window.location.href = '/dashboard.html';
         } else {
             alert(data.message || 'Login failed');
         }
@@ -180,8 +181,8 @@ async function handleCreateAccount(event) {
         const data = await response.json();
 
         if (data.success) {
-            showUserGreeting(data.username);
-            closeModal();
+            // Redirect to dashboard
+            window.location.href = '/dashboard.html';
         } else {
             // Display validation errors
             if (data.errors) {
@@ -214,49 +215,5 @@ function displayErrors(errors) {
         if (input) {
             input.classList.add('error');
         }
-    }
-}
-
-function showUserGreeting(username) {
-    document.getElementById('username-display').textContent = username;
-    document.getElementById('user-greeting').classList.remove('hidden');
-    document.getElementById('main-content').style.display = 'none';
-}
-
-async function handleLogout() {
-    try {
-        const response = await fetch('/api/logout', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            // Hide the user greeting
-            document.getElementById('user-greeting').classList.add('hidden');
-
-            // Show main content with logout message
-            document.getElementById('main-content').style.display = 'block';
-            const homepageContent = document.querySelector('.homepage-content');
-            homepageContent.innerHTML = '<h2>You\'ve been logged out successfully</h2>';
-
-            // After 3 seconds, reset to initial view
-            setTimeout(() => {
-                homepageContent.innerHTML = `
-                    <img src="Full ShiurBank Logo.png" alt="ShiurBank" class="homepage-logo">
-                    <h2>Welcome to ShiurBank</h2>
-                    <p>Your source for Shiurim</p>
-                    <button id="login-btn" class="btn-primary" onclick="openModal()">Login/Create Account</button>
-                `;
-            }, 3000);
-        } else {
-            alert('Logout failed. Please try again.');
-        }
-    } catch (error) {
-        console.error('Error during logout:', error);
-        alert('An error occurred during logout. Please try again.');
     }
 }

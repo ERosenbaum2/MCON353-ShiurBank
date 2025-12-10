@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShiurBank - Dashboard</title>
+    <link rel="icon" type="image/png" href="ShiurBank Logo No Words.png">
+    <link rel="stylesheet" href="common-styles.css">
+    <link rel="stylesheet" href="dashboard-styles.css">
+    <script src="dashboard.js" defer></script>
+</head>
+<body>
+<!-- Header -->
+<header>
+    <div class="header-content">
+        <img src="ShiurBank Logo No Words.png" alt="ShiurBank Logo" class="header-logo">
+        <h1>ShiurBank</h1>
+    </div>
+</header>
+
+<!-- User greeting bar -->
+<div id="user-greeting" class="hidden">
+    <p>Hello <span id="username-display"></span></p>
+    <button id="logout-btn" class="btn-primary" onclick="handleLogout()">Logout</button>
+</div>
+
+<!-- Main dashboard content -->
+<main class="hidden" id="dashboard-main">
+    <div class="dashboard-content">
+        <h2>Dashboard</h2>
+        <p>Welcome to your ShiurBank dashboard. More features coming soon!</p>
+    </div>
+</main>
+</body>
+</html>
