@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 import javax.sql.DataSource;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.Objects;
 import java.util.Properties;
 
 @Configuration
@@ -41,6 +42,6 @@ public class DatabaseConfig {
 
     @Bean
     public PlatformTransactionManager transactionManager(DataSource dataSource) {
-        return new DataSourceTransactionManager(dataSource);
+        return new DataSourceTransactionManager(Objects.requireNonNull(dataSource, "dataSource must not be null"));
     }
 }
