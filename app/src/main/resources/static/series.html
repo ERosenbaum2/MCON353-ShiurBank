@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shiur Series - ShiurBank</title>
+  <link rel="icon" type="image/png" href="/ShiurBank Logo No Words.png">
+  <link rel="stylesheet" href="/common-styles.css">
+  <link rel="stylesheet" href="/dashboard-styles.css">
+  <script src="/series.js" defer></script>
+</head>
+<body>
+<header>
+  <div class="header-content">
+    <img src="/ShiurBank Logo No Words.png" alt="ShiurBank Logo" class="header-logo">
+    <h1>Shiur Series</h1>
+  </div>
+</header>
+
+<div id="user-greeting" class="hidden">
+  <p>Hello <span id="username-display"></span></p>
+  <button id="logout-btn" class="btn-primary" onclick="handleLogout()">Logout</button>
+</div>
+
+<main class="hidden" id="series-main">
+  <div class="dashboard-content">
+    <h2 id="series-title">Loading series...</h2>
+    <button type="button" class="btn-secondary" onclick="window.location.href='/dashboard.html'" style="margin: 0.5rem 0 1rem 0;">
+      Back to Dashboard
+    </button>
+    <p id="series-meta"></p>
+    <p id="series-description"></p>
+
+    <hr style="margin:2rem 0;">
+
+    <h3>Shiurim in this Series</h3>
+    <p>(Coming soon.)</p>
+  </div>
+</main>
+</body>
+</html>

@@ -119,3 +119,16 @@ CREATE TABLE favorite_shiurim (
     CONSTRAINT fk_fav_series FOREIGN KEY (series_id) REFERENCES shiur_series(series_id) ON DELETE CASCADE,
     CONSTRAINT uq_favorite UNIQUE (user_id, series_id)
 ) ENGINE=InnoDB;
+
+CREATE TABLE pending_permission (
+    pending_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    series_id  BIGINT NOT NULL,
+
+    CONSTRAINT uq_pending_series
+        UNIQUE (series_id),
+
+    CONSTRAINT fk_pending_series
+        FOREIGN KEY (series_id)
+        REFERENCES shiur_series(series_id)
+        ON DELETE RESTRICT
+) ENGINE=InnoDB;
