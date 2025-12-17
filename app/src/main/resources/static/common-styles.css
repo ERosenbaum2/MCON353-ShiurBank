@@ -1,0 +1,146 @@
+/* Reset and Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background-color: #F5EFE6;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* Header - Used on all pages */
+header {
+    background-color: #F5EFE6;
+    padding: 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.header-content {
+    display: flex;
+    align-items: stretch;
+}
+
+.header-logo {
+    height: 100px;
+    width: 100px;
+    padding: 1.5rem;
+    background-color: #F5EFE6;
+    flex-shrink: 0;
+    object-fit: contain;
+    box-sizing: border-box;
+}
+
+header h1 {
+    font-size: 2rem;
+    font-weight: 600;
+    padding: 1.5rem 2rem;
+    background-color: #1B4965;
+    color: white;
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    margin: 0;
+}
+
+/* User Greeting Bar - Used on dashboard */
+#user-greeting {
+    background-color: #3F88C5;
+    color: white;
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+#user-greeting p {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+#username-display {
+    font-weight: 600;
+}
+
+#logout-btn {
+    padding: 0.5rem 1.5rem;
+    font-size: 0.95rem;
+}
+
+/* Main Content Container */
+main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 3rem 2rem;
+}
+
+/* Buttons - Used across all pages */
+.btn-primary {
+    background-color: #3F88C5;
+    color: white;
+    border: none;
+    padding: 0.75rem 2rem;
+    font-size: 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.btn-primary:hover {
+    background-color: #2d6a9f;
+}
+
+.btn-primary:active {
+    transform: scale(0.98);
+}
+
+.btn-secondary {
+    background-color: #95a5a6;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin-top: 0.5rem;
+}
+
+.btn-secondary:hover {
+    background-color: #7f8c8d;
+}
+
+/* Responsive Design for Common Elements */
+@media (max-width: 768px) {
+    .header-logo {
+        height: 60px;
+        width: 60px;
+    }
+
+    header h1 {
+        font-size: 1.5rem;
+        padding: 1rem 1rem 1rem 0;
+    }
+
+    main {
+        padding: 2rem 1rem;
+    }
+
+    #user-greeting {
+        flex-direction: column;
+        gap: 0.75rem;
+        text-align: center;
+    }
+
+    #logout-btn {
+        width: 100%;
+    }
+}

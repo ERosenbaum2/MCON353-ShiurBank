@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShiurBank - Audio Library</title>
+    <link rel="icon" type="image/png" href="ShiurBank Logo No Words.png">
+    <link rel="stylesheet" href="common-styles.css">
+    <style>
+        .audio-container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px RGBA(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .audio-item {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+
+        .audio-item h3 {
+            color: #1B4965;
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+        }
+
+        .audio-player {
+            width: 100%;
+            margin-top: 0.5rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+
+        .error {
+            color: #e74c3c;
+            padding: 1rem;
+            background-color: #fee;
+            border-radius: 4px;
+            margin: 1rem 0;
+        }
+
+        .audio-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .refresh-btn {
+            background-color: #3F88C5;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .refresh-btn:hover {
+            background-color: #2d6a9f;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div class="header-content">
+        <img src="ShiurBank Logo No Words.png" alt="ShiurBank Logo" class="header-logo">
+        <h1>ShiurBank - Audio Library</h1>
+    </div>
+</header>
+
+<main>
+    <div class="audio-container">
+        <div class="audio-header">
+            <h2>Audio Files</h2>
+            <button class="refresh-btn" onclick="loadAudioFiles()">Refresh</button>
+        </div>
+
+        <div id="loading" class="loading">Loading audio files...</div>
+        <div id="error" class="error hidden"></div>
+        <div id="audio-list"></div>
+    </div>
+</main>
+
+<script>
+    async function loadAudioFiles() {
+        const loadingDiv = document.getElementById('loading');
+        const errorDiv = document.getElementById('error');
+        const audioListDiv = document.getElementById('audio-list');
+
+        // Show loading, hide error
+        loadingDiv.style.display = 'block';
+        errorDiv.classList.add('hidden');
+        audioListDiv.innerHTML = '';
+
+        try {
+            const response = await fetch('/api/audio/list');
+            const data = await response.json();
+
+            if (data.success && data.files) {
+                if (data.files.length === 0) {
+                    audioListDiv.innerHTML = '<p style="text-align: center; color: #666; padding: 2rem;">No audio files found.</p>';
+                } else {
+                    data.files.forEach(fileName => {
+                        const audioItem = document.createElement('div');
+                        audioItem.className = 'audio-item';
+
+                        // Create a safe display name (remove path if present)
+                        const displayName = fileName.split('/').pop();
+
+                        // Determine MIME type based on file extension
+                        const mimeType = getMimeType(fileName);
+
+                        audioItem.innerHTML = `
+                            <h3>${escapeHtml(displayName)}</h3>
+                            <audio controls class="audio-player" preload="metadata">
+                                <source src="/api/audio/stream/${encodeURIComponent(fileName)}" type="${mimeType}">
+                                Your browser does not support the audio element.
+                            </audio>
+                        `;
+
+                        audioListDiv.appendChild(audioItem);
+                    });
+                }
+            } else {
+                throw new Error(data.message || 'Failed to load audio files');
+            }
+        } catch (error) {
+            console.error('Error loading audio files:', error);
+            errorDiv.textContent = 'Error loading audio files: ' + error.message;
+            errorDiv.classList.remove('hidden');
+        } finally {
+            loadingDiv.style.display = 'none';
+        }
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function getMimeType(fileName) {
+        const lowerFileName = fileName.toLowerCase();
+        if (lowerFileName.endsWith('.mp3')) {
+            return 'audio/mpeg';
+        } else if (lowerFileName.endsWith('.wav')) {
+            return 'audio/wav';
+        } else if (lowerFileName.endsWith('.ogg')) {
+            return 'audio/ogg';
+        } else if (lowerFileName.endsWith('.m4a')) {
+            return 'audio/mp4';
+        }
+        return 'audio/mpeg'; // default
+    }
+
+    // Load audio files when page loads
+    window.addEventListener('DOMContentLoaded', function() {
+        loadAudioFiles();
+    });
+</script>
+</body>
+</html>
