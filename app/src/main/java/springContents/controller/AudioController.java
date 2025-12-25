@@ -50,21 +50,21 @@ public class AudioController {
         try {
             // Decode the filename in case it has special characters
             String decodedFileName = URLDecoder.decode(fileName, StandardCharsets.UTF_8);
-            
+
             ResponseInputStream<GetObjectResponse> s3Object = s3Service.getAudioFile(decodedFileName);
-            
+
             // Determine content type based on file extension
             String contentType = getContentType(decodedFileName);
-            
+
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.parseMediaType(contentType));
             headers.setContentDispositionFormData("inline", decodedFileName);
             headers.setCacheControl("public, max-age=3600");
-            
+
             return ResponseEntity.ok()
                     .headers(headers)
                     .body(new InputStreamResource(s3Object));
-                    
+
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
@@ -80,8 +80,19 @@ public class AudioController {
             return "audio/ogg";
         } else if (lowerFileName.endsWith(".m4a")) {
             return "audio/mp4";
+        } else if (lowerFileName.endsWith(".opus")) {
+            return "audio/opus";
+        } else if (lowerFileName.endsWith(".flac")) {
+            return "audio/flac";
+        } else if (lowerFileName.endsWith(".aac")) {
+            return "audio/aac";
+        } else if (lowerFileName.endsWith(".webm")) {
+            return "audio/webm";
+        } else if (lowerFileName.endsWith(".aiff") || lowerFileName.endsWith(".aif")) {
+            return "audio/aiff";
+        } else if (lowerFileName.endsWith(".wma")) {
+            return "audio/x-ms-wma";
         }
         return "audio/mpeg"; // default
     }
 }
-

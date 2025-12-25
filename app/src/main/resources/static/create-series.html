@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Shiur Series - ShiurBank</title>
+  <link rel="icon" type="image/png" href="ShiurBank Logo No Words.png">
+  <link rel="stylesheet" href="common-styles.css">
+  <link rel="stylesheet" href="index-styles.css">
+  <link rel="stylesheet" href="dashboard-styles.css">
+  <script src="create-series.js" defer></script>
+</head>
+<body>
+<header>
+  <div class="header-content">
+    <img src="ShiurBank Logo No Words.png" alt="ShiurBank Logo" class="header-logo">
+    <h1>Create Shiur Series</h1>
+  </div>
+</header>
+
+<div id="user-greeting" class="hidden">
+  <p>Hello <span id="username-display"></span></p>
+  <button id="logout-btn" class="btn-primary" onclick="handleLogout()">Logout</button>
+</div>
+
+<main class="hidden" id="create-series-main">
+  <div class="dashboard-content">
+    <h2>Start a New Shiur Series</h2>
+
+    <button type="button" class="btn-secondary" onclick="window.location.href='/dashboard.html'" style="margin-bottom: 1rem;">
+      Back to Dashboard
+    </button>
+
+    <form id="create-series-form">
+      <div class="form-group">
+        <label for="series-description">Describe this Shiur Series:</label>
+        <textarea id="series-description" name="description" rows="3" required></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="topic-select">Shiur Topic:</label>
+        <select id="topic-select" name="topicId" required>
+          <option value="">Select a topic</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="rebbi-select">Rebbi:</label>
+        <select id="rebbi-select" name="rebbiId" required>
+          <option value="">Select a Rebbi</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="inst-select">Institution associated with this Series:</label>
+        <select id="inst-select" name="instId" required>
+          <option value="">Select an institution</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Additional Gabbaim (optional)</label>
+        <p style="font-size:0.9rem;color:#666;margin-bottom:0.5rem;">
+          To assign another user as an additional gabbai, enter that user's username and password.
+        </p>
+        <div id="gabbaim-container"></div>
+        <button type="button" class="btn-secondary" id="add-gabbai-btn">Add Gabbai</button>
+      </div>
+
+      <div class="form-group">
+        <label>Permissions for others to access this Series:</label>
+        <div>
+          <label>
+            <input type="radio" name="requiresPermission" value="false" checked>
+            Anyone can access the Shiurim (no extra approval)
+          </label><br>
+          <label>
+            <input type="radio" name="requiresPermission" value="true">
+            Access requires permission (approval flow to be added later)
+          </label>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem;">
+        <button type="button" class="btn-secondary" onclick="window.location.href='/dashboard.html'">
+          Cancel
+        </button>
+        <button type="submit" class="btn-primary">Create Series</button>
+      </div>
+    </form>
+  </div>
+</main>
+</body>
+</html>
+
+
