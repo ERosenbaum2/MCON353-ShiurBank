@@ -132,3 +132,14 @@ CREATE TABLE pending_permission (
         REFERENCES shiur_series(series_id)
         ON DELETE RESTRICT
 ) ENGINE=InnoDB;
+
+CREATE TABLE admins (
+    admin_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    UNIQUE (user_id),
+    CONSTRAINT fk_admins_users
+        FOREIGN KEY (user_id)
+        REFERENCES users(user_id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+) ENGINE=InnoDB;

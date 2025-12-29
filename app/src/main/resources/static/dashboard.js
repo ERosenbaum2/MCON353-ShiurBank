@@ -1,6 +1,7 @@
 // Check if user is logged in on page load and then load dashboard data
 document.addEventListener('DOMContentLoaded', async function() {
     await checkAuthAndLoadUser();
+    await checkAdminStatus();
     wireCreateSeriesButton();
     loadMySeries();
 });
@@ -60,6 +61,25 @@ function wireCreateSeriesButton() {
         btn.addEventListener('click', function() {
             window.location.href = '/create-series.html';
         });
+    }
+}
+
+// Check admin status and show admin link if user is admin
+async function checkAdminStatus() {
+    try {
+        const response = await fetch('/api/admin/check');
+        if (response.ok) {
+            const data = await response.json();
+            if (data.isAdmin) {
+                const adminLinkContainer = document.getElementById('admin-link-container');
+                if (adminLinkContainer) {
+                    adminLinkContainer.classList.remove('hidden');
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error checking admin status:', error);
+        // Silently fail - don't show admin link if check fails
     }
 }
 
