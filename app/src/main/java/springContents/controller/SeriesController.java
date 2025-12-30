@@ -12,9 +12,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 import springContents.dao.AdminDAO;
+import springContents.dao.RecordingDAO;
 import springContents.dao.RebbiDAO;
 import springContents.dao.ShiurSeriesDAO;
 import springContents.dao.TopicDAO;
@@ -40,6 +42,7 @@ public class SeriesController {
     private final UserDAO userDAO;
     private final AdminDAO adminDAO;
     private final SNSService snsService;
+    private final RecordingDAO recordingDAO;
 
     @Autowired
     public SeriesController(TopicDAO topicDAO,
@@ -47,13 +50,15 @@ public class SeriesController {
                             ShiurSeriesDAO shiurSeriesDAO,
                             UserDAO userDAO,
                             AdminDAO adminDAO,
-                            SNSService snsService) {
+                            SNSService snsService,
+                            RecordingDAO recordingDAO) {
         this.topicDAO = topicDAO;
         this.rebbiDAO = rebbiDAO;
         this.shiurSeriesDAO = shiurSeriesDAO;
         this.userDAO = userDAO;
         this.adminDAO = adminDAO;
         this.snsService = snsService;
+        this.recordingDAO = recordingDAO;
     }
 
     @GetMapping("/topics")
@@ -224,6 +229,32 @@ public class SeriesController {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(details);
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<Map<String, Object>> search(@RequestParam("q") String query,
+                                                       HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        if (query == null || query.trim().isEmpty()) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("seriesResults", new ArrayList<>());
+            response.put("recordingResults", new ArrayList<>());
+            return ResponseEntity.ok(response);
+        }
+
+        String searchQuery = query.trim();
+        List<Map<String, Object>> seriesResults = shiurSeriesDAO.searchSeries(searchQuery, user.getUserId());
+        List<Map<String, Object>> recordingResults = recordingDAO.searchRecordings(searchQuery, user.getUserId());
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("seriesResults", seriesResults);
+        response.put("recordingResults", recordingResults);
+
+        return ResponseEntity.ok(response);
     }
 
     private Long toLong(Object value) {

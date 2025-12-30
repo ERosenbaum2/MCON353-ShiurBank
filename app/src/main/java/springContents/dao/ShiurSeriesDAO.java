@@ -184,6 +184,66 @@ public class ShiurSeriesDAO {
 
         return emails;
     }
+
+    public List<Map<String, Object>> searchSeries(String query, Long userId) {
+        String searchPattern = "%" + query.toLowerCase() + "%";
+        String sql =
+                "SELECT DISTINCT s.series_id, s.description, s.requires_permission, " +
+                        "       t.name AS topic_name, " +
+                        "       CONCAT(r.title, ' ', r.fname, ' ', r.lname) AS rebbi_name, " +
+                        "       i.name AS inst_name, " +
+                        "       CASE WHEN (sp.user_id IS NOT NULL OR g.user_id IS NOT NULL) THEN 1 ELSE 0 END AS has_access " +
+                        "FROM shiur_series s " +
+                        "JOIN topics t ON s.topic_id = t.topic_id " +
+                        "JOIN rebbeim r ON s.rebbi_id = r.rebbi_id " +
+                        "JOIN institutions i ON s.inst_id = i.inst_id " +
+                        "LEFT JOIN shiur_participants sp ON s.series_id = sp.series_id AND sp.user_id = ? " +
+                        "LEFT JOIN gabbaim g ON s.series_id = g.series_id AND g.user_id = ? " +
+                        "WHERE LOWER(s.description) LIKE ? " +
+                        "   OR LOWER(t.name) LIKE ? " +
+                        "   OR LOWER(CONCAT(r.title, ' ', r.fname, ' ', r.lname)) LIKE ? " +
+                        "   OR LOWER(i.name) LIKE ? " +
+                        "ORDER BY has_access DESC, s.series_id DESC";
+
+        List<Map<String, Object>> result = new ArrayList<>();
+
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setLong(1, userId);
+            stmt.setLong(2, userId);
+            stmt.setString(3, searchPattern);
+            stmt.setString(4, searchPattern);
+            stmt.setString(5, searchPattern);
+            stmt.setString(6, searchPattern);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> row = new HashMap<>();
+                    long seriesId = rs.getLong("series_id");
+                    String topicName = rs.getString("topic_name");
+                    String rebbiName = rs.getString("rebbi_name");
+                    boolean hasAccess = rs.getInt("has_access") == 1;
+                    boolean requiresPermission = rs.getBoolean("requires_permission");
+
+                    row.put("seriesId", seriesId);
+                    row.put("description", rs.getString("description"));
+                    row.put("topicName", topicName);
+                    row.put("rebbiName", rebbiName);
+                    row.put("institutionName", rs.getString("inst_name"));
+                    row.put("displayName", topicName + " — " + rebbiName);
+                    row.put("hasAccess", hasAccess);
+                    row.put("requiresPermission", requiresPermission);
+
+                    result.add(row);
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error searching series", e);
+        }
+
+        return result;
+    }
 }
 
     /**
