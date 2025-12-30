@@ -8,188 +8,203 @@ import org.springframework.stereotype.Service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sns.SnsClient;
 import software.amazon.awssdk.services.sns.model.*;
-import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
 @Service
 public class SNSService {
+
     private static final Logger logger = LoggerFactory.getLogger(SNSService.class);
+
     private final SnsClient snsClient;
     private final Region region;
+
+    // Topic configuration
     private final String adminTopicName;
     private final String subscriberTopicName;
-    private final List<String> adminEmails;
+    private final String configuredAdminTopicArn;
+
+    // Runtime-resolved ARNs
     private String adminTopicArn;
     private String subscriberTopicArn;
 
+    private final List<String> adminEmails;
+
     @Autowired
     public SNSService(ResourceLoader resourceLoader) throws IOException {
-        Properties credentials = new Properties();
-
+        Properties props = new Properties();
         Resource resource = resourceLoader.getResource("classpath:dbcredentials.properties");
-        credentials.load(resource.getInputStream());
+        props.load(resource.getInputStream());
 
-        String regionStr = credentials.getProperty("sns.region", "us-east-1");
-        this.region = Region.of(regionStr);
-        this.adminTopicName = credentials.getProperty("sns.admin.topic.name", "shiurbank-admin-notifications");
-        this.subscriberTopicName = credentials.getProperty("sns.subscriber.topic.name", "shiurbank-subscriber-notifications");
+        // Region
+        this.region = Region.of(props.getProperty("sns.region", "us-east-1"));
 
-        String profileName = credentials.getProperty("s3.aws.profile", "default");
+        // Topics
+        this.adminTopicName = props.getProperty(
+                "sns.admin.topic.name",
+                "shiurbank-admin-notifications"
+        );
+        this.subscriberTopicName = props.getProperty(
+                "sns.subscriber.topic.name",
+                "shiurbank-subscriber-notifications"
+        );
+        this.configuredAdminTopicArn = props.getProperty("sns.admin.topic.arn");
+
+        // Profile selection
+        String profileName = props.getProperty("sns.aws.profile");
+        if (profileName == null || profileName.isBlank()) {
+            profileName = props.getProperty("s3.aws.profile", "default");
+        }
+
+        // Admin emails
+        this.adminEmails = new ArrayList<>();
+        String emails = props.getProperty("sns.admin.emails", "");
+        for (String email : emails.split(",")) {
+            if (!email.trim().isEmpty()) {
+                adminEmails.add(email.trim());
+            }
+        }
 
         this.snsClient = SnsClient.builder()
                 .region(region)
                 .credentialsProvider(ProfileCredentialsProvider.create(profileName))
                 .build();
 
-        // Parse admin emails from properties
-        String adminEmailsStr = credentials.getProperty("sns.admin.emails", "");
-        if (adminEmailsStr != null && !adminEmailsStr.trim().isEmpty()) {
-            String[] emails = adminEmailsStr.split(",");
-            this.adminEmails = new ArrayList<>();
-            for (String email : emails) {
-                String trimmed = email.trim();
-                if (!trimmed.isEmpty()) {
-                    this.adminEmails.add(trimmed);
-                }
-            }
-        } else {
-            this.adminEmails = new ArrayList<>();
-        }
-
-        logger.info("SNSService initialized with region: {} using profile: {}", region, profileName);
-        logger.info("Admin topic name: {}, Subscriber topic name: {}", adminTopicName, subscriberTopicName);
-        logger.info("Admin emails configured: {}", adminEmails.size());
+        logger.info(
+                "SNSService initialized (region={}, profile={}, adminEmails={})",
+                region, profileName, adminEmails.size()
+        );
     }
 
     @PostConstruct
     public void initializeTopics() {
         try {
-            // Create or get admin topic
-            this.adminTopicArn = createOrGetTopic(adminTopicName);
-            logger.info("Admin topic ARN: {}", adminTopicArn);
-
-            // Create or get subscriber topic
-            this.subscriberTopicArn = createOrGetTopic(subscriberTopicName);
-            logger.info("Subscriber topic ARN: {}", subscriberTopicArn);
-
-            // Subscribe admin emails to admin topic
-            for (String email : adminEmails) {
-                if (email != null && !email.trim().isEmpty()) {
-                    try {
-                        subscribeEmail(adminTopicArn, email.trim());
-                        logger.info("Subscribed admin email to admin topic: {}", email.trim());
-                    } catch (Exception e) {
-                        logger.warn("Failed to subscribe admin email {}: {}", email.trim(), e.getMessage());
-                    }
-                }
+            // Admin topic: use ARN if explicitly configured
+            if (configuredAdminTopicArn != null && !configuredAdminTopicArn.isBlank()) {
+                this.adminTopicArn = configuredAdminTopicArn;
+                logger.info("Using configured admin topic ARN: {}", adminTopicArn);
+            } else {
+                this.adminTopicArn = createOrGetTopic(adminTopicName);
             }
+
+            // Subscriber topic is always name-based
+            this.subscriberTopicArn = createOrGetTopic(subscriberTopicName);
+
+            // Subscribe admin emails
+            for (String email : adminEmails) {
+                subscribeEmail(adminTopicArn, email);
+            }
+
         } catch (Exception e) {
-            logger.error("Error initializing SNS topics: {}", e.getMessage(), e);
+            logger.error("Failed to initialize SNS topics", e);
         }
     }
 
     private String createOrGetTopic(String topicName) {
         try {
-            // Try to create the topic
-            CreateTopicRequest createRequest = CreateTopicRequest.builder()
-                    .name(topicName)
-                    .build();
-
-            CreateTopicResponse createResponse = snsClient.createTopic(createRequest);
-            logger.info("Created SNS topic: {} with ARN: {}", topicName, createResponse.topicArn());
-            return createResponse.topicArn();
+            CreateTopicResponse response = snsClient.createTopic(
+                    CreateTopicRequest.builder().name(topicName).build()
+            );
+            logger.info("SNS topic ready: {} ({})", topicName, response.topicArn());
+            return response.topicArn();
         } catch (SnsException e) {
-            if (e.awsErrorDetails().errorCode().equals("ResourceConflictException") ||
-                e.awsErrorDetails().errorCode().equals("TopicLimitExceeded")) {
-                // Topic might already exist, try to get it
-                logger.info("Topic {} may already exist, attempting to get ARN", topicName);
-                try {
-                    ListTopicsRequest listRequest = ListTopicsRequest.builder().build();
-                    ListTopicsResponse listResponse = snsClient.listTopics(listRequest);
-                    
-                    for (Topic topic : listResponse.topics()) {
-                        String arn = topic.topicArn();
-                        if (arn.endsWith(":" + topicName)) {
-                            logger.info("Found existing topic: {} with ARN: {}", topicName, arn);
-                            return arn;
-                        }
-                    }
-                    // If not found, throw original exception
-                    throw new RuntimeException("Topic " + topicName + " not found and could not be created", e);
-                } catch (Exception listEx) {
-                    throw new RuntimeException("Error listing topics to find existing topic", listEx);
-                }
-            } else {
-                throw new RuntimeException("Error creating SNS topic: " + topicName, e);
-            }
+            throw new RuntimeException("Unable to create/get SNS topic: " + topicName, e);
         }
     }
 
-    public void subscribeEmail(String topicArn, String email) {
+    private void subscribeEmail(String topicArn, String email) {
         try {
-            SubscribeRequest subscribeRequest = SubscribeRequest.builder()
-                    .topicArn(topicArn)
-                    .protocol("email")
-                    .endpoint(email)
-                    .build();
-
-            SubscribeResponse response = snsClient.subscribe(subscribeRequest);
-            logger.info("Subscribed email {} to topic {} with subscription ARN: {}", 
-                    email, topicArn, response.subscriptionArn());
+            snsClient.subscribe(
+                    SubscribeRequest.builder()
+                            .topicArn(topicArn)
+                            .protocol("email")
+                            .endpoint(email)
+                            .build()
+            );
+            logger.info("Subscription request sent for {}", email);
         } catch (SnsException e) {
-            String errorCode = e.awsErrorDetails().errorCode();
-            if (errorCode.equals("InvalidParameter") || 
-                errorCode.equals("SubscriptionLimitExceeded") ||
-                e.getMessage().contains("already subscribed") ||
-                e.getMessage().contains("already exists")) {
-                // Already subscribed or invalid - log and continue
-                logger.debug("Email {} may already be subscribed to topic {}: {}", email, topicArn, e.getMessage());
-            } else {
-                logger.error("Error subscribing email {} to topic {}: {}", email, topicArn, e.getMessage(), e);
-                throw new RuntimeException("Failed to subscribe email to topic", e);
-            }
+            logger.debug("Email {} may already be subscribed: {}", email, e.getMessage());
         }
     }
 
-    public void publishToAdminTopic(String message, String subject) {
-        if (adminTopicArn == null) {
-            logger.warn("Admin topic ARN is null, cannot publish message");
+    /* =======================
+       Publishing APIs
+       ======================= */
+
+    public void publishToAdminTopic(String subject, String message) {
+        publish(adminTopicArn, subject, message);
+    }
+
+    public void publishToSubscriberTopic(String subject, String message) {
+        publish(subscriberTopicArn, subject, message);
+    }
+
+    private void publish(String topicArn, String subject, String message) {
+        if (topicArn == null) {
+            logger.warn("SNS topic ARN is null, skipping publish");
             return;
         }
-        publishMessage(adminTopicArn, message, subject);
-    }
 
-    public void publishToSubscriberTopic(String message, String subject) {
-        if (subscriberTopicArn == null) {
-            logger.warn("Subscriber topic ARN is null, cannot publish message");
-            return;
-        }
-        publishMessage(subscriberTopicArn, message, subject);
-    }
-
-    private void publishMessage(String topicArn, String message, String subject) {
         try {
-            PublishRequest publishRequest = PublishRequest.builder()
-                    .topicArn(topicArn)
-                    .message(message)
-                    .subject(subject)
-                    .build();
-
-            PublishResponse response = snsClient.publish(publishRequest);
-            logger.info("Published message to topic {} with message ID: {}", topicArn, response.messageId());
+            PublishResponse response = snsClient.publish(
+                    PublishRequest.builder()
+                            .topicArn(topicArn)
+                            .subject(subject)
+                            .message(message)
+                            .build()
+            );
+            logger.info("SNS message published: {}", response.messageId());
         } catch (SnsException e) {
-            logger.error("Error publishing message to topic {}: {}", topicArn, e.getMessage(), e);
-            throw new RuntimeException("Failed to publish message to topic", e);
+            throw new RuntimeException("SNS publish failed", e);
         }
     }
+
+    /* =======================
+       Domain-specific helper
+       ======================= */
+
+    public void notifyNewSeriesRequiringVerification(
+            Long seriesId,
+            String seriesDescription,
+            String rebbiName,
+            String topicName,
+            String institutionName,
+            String creatorUsername
+    ) {
+        String subject = "New Series Requires Verification - Series #" + seriesId;
+        String message = String.format("""
+                A new series has been created and requires verification:
+
+                Series ID: %d
+                Description: %s
+                Rabbi: %s
+                Topic: %s
+                Institution: %s
+                Created by: %s
+
+                Please review this series in the admin panel.
+                """,
+                seriesId,
+                seriesDescription,
+                rebbiName,
+                topicName,
+                institutionName,
+                creatorUsername
+        );
+
+        publishToAdminTopic(subject, message);
+    }
+
+    /* =======================
+       Accessors
+       ======================= */
 
     public String getAdminTopicArn() {
         return adminTopicArn;
@@ -203,4 +218,3 @@ public class SNSService {
         return new ArrayList<>(adminEmails);
     }
 }
-
