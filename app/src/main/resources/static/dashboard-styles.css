@@ -49,6 +49,30 @@
     transform: translateY(0);
 }
 
+/* Pending series styling */
+.series-item.series-pending {
+    background-color: #fff3cd;
+    border-color: #ffc107;
+    opacity: 0.85;
+}
+
+.series-item.series-pending:hover {
+    background-color: #fff3cd;
+    box-shadow: none;
+    transform: none;
+}
+
+.pending-badge {
+    display: inline-block;
+    background-color: #ff9800;
+    color: white;
+    padding: 0.25rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-top: 0.5rem;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .dashboard-content {
@@ -61,5 +85,10 @@
 
     .dashboard-content p {
         font-size: 1rem;
+    }
+
+    .pending-badge {
+        font-size: 0.75rem;
+        padding: 0.2rem 0.5rem;
     }
 }

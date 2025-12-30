@@ -1,6 +1,7 @@
 // Check if user is logged in on page load and then load dashboard data
 document.addEventListener('DOMContentLoaded', async function() {
     await checkAuthAndLoadUser();
+    await checkAdminStatus();
     wireCreateSeriesButton();
     loadMySeries();
 });
@@ -63,6 +64,25 @@ function wireCreateSeriesButton() {
     }
 }
 
+// Check admin status and show admin link if user is admin
+async function checkAdminStatus() {
+    try {
+        const response = await fetch('/api/admin/check');
+        if (response.ok) {
+            const data = await response.json();
+            if (data.isAdmin) {
+                const adminLinkContainer = document.getElementById('admin-link-container');
+                if (adminLinkContainer) {
+                    adminLinkContainer.classList.remove('hidden');
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error checking admin status:', error);
+        // Silently fail - don't show admin link if check fails
+    }
+}
+
 async function loadMySeries() {
     const listEl = document.getElementById('my-series-list');
     if (!listEl) {
@@ -88,16 +108,33 @@ async function loadMySeries() {
         series.forEach(function(s) {
             const item = document.createElement('div');
             item.className = 'series-item';
-            item.style.cursor = 'pointer';
-            item.style.padding = '0.5rem 0';
-            item.style.borderBottom = '1px solid #eee';
 
             const title = s.displayName || ('Series #' + s.seriesId);
-            item.textContent = title;
 
-            item.addEventListener('click', function() {
-                window.location.href = '/series/' + encodeURIComponent(s.seriesId);
-            });
+            // Check if series is pending verification
+            if (s.isPending === true) {
+                item.classList.add('series-pending');
+                item.style.cursor = 'not-allowed';
+
+                const titleDiv = document.createElement('div');
+                titleDiv.textContent = title;
+                titleDiv.style.marginBottom = '0.25rem';
+
+                const badge = document.createElement('span');
+                badge.className = 'pending-badge';
+                badge.textContent = 'Pending Verification';
+
+                item.appendChild(titleDiv);
+                item.appendChild(badge);
+            } else {
+                item.textContent = title;
+                item.style.cursor = 'pointer';
+
+                // Only add click handler for verified series
+                item.addEventListener('click', function() {
+                    window.location.href = '/series/' + encodeURIComponent(s.seriesId);
+                });
+            }
 
             listEl.appendChild(item);
         });

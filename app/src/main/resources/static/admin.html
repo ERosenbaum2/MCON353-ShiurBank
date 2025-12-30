@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShiurBank - Admin Panel</title>
+    <link rel="icon" type="image/png" href="ShiurBank Logo No Words.png">
+    <link rel="stylesheet" href="common-styles.css">
+    <link rel="stylesheet" href="admin-styles.css">
+    <script src="admin.js" defer></script>
+</head>
+<body>
+<!-- Header -->
+<header>
+    <div class="header-content">
+        <img src="ShiurBank Logo No Words.png" alt="ShiurBank Logo" class="header-logo">
+        <h1>ShiurBank</h1>
+    </div>
+</header>
+
+<!-- User greeting bar -->
+<div id="user-greeting" class="hidden">
+    <p>Hello <span id="username-display"></span></p>
+    <div>
+        <a href="/dashboard.html" class="btn-secondary" style="margin-right: 1rem; text-decoration: none; display: inline-block;">Dashboard</a>
+        <button id="logout-btn" class="btn-primary" onclick="handleLogout()">Logout</button>
+    </div>
+</div>
+
+<!-- Main admin content -->
+<main class="hidden" id="admin-main">
+    <div class="admin-content">
+        <h2>Admin Panel</h2>
+
+        <!-- RDS Database Control Section -->
+        <div class="admin-section">
+            <h3>Database Control</h3>
+            <div class="rds-controls">
+                <div class="status-display">
+                    <p>Database Status: <span id="db-status">Loading...</span></p>
+                </div>
+                <div class="rds-buttons">
+                    <button id="check-status-btn" class="btn-primary">Check Status</button>
+                    <button id="start-db-btn" class="btn-primary" disabled>Start Database</button>
+                    <button id="stop-db-btn" class="btn-primary" disabled>Stop Database</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Admin Section -->
+        <div class="admin-section">
+            <h3>Designate System Admin</h3>
+            <div class="add-admin-controls">
+                <label for="user-select">Select User:</label>
+                <select id="user-select" class="user-dropdown">
+                    <option value="">-- Select a user --</option>
+                </select>
+                <button id="add-admin-btn" class="btn-primary" disabled>Add as Admin</button>
+            </div>
+        </div>
+
+        <!-- Pending Permissions Section -->
+        <div class="admin-section">
+            <h3>Pending Permissions</h3>
+            <div id="pending-permissions-list">
+                <p>Loading pending permissions...</p>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Confirmation Modal for Pending Permission -->
+<div id="confirm-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+        <h3>Confirm Verification</h3>
+        <p>Are you sure you want to verify this pending permission?</p>
+        <div class="modal-buttons">
+            <button id="confirm-yes-btn" class="btn-primary">Yes, Verify</button>
+            <button id="confirm-no-btn" class="btn-secondary">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Modal for Add Admin -->
+<div id="add-admin-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+        <h3>Confirm Add Admin</h3>
+        <p id="add-admin-message">Are you sure you want to add this user as a system admin?</p>
+        <div class="modal-buttons">
+            <button id="add-admin-confirm-btn" class="btn-primary">Yes, Add Admin</button>
+            <button id="add-admin-cancel-btn" class="btn-secondary">Cancel</button>
+        </div>
+    </div>
+</div>
+</body>
+</html>
+

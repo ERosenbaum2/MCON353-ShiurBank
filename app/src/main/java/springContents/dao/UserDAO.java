@@ -1,12 +1,15 @@
 package springContents.dao;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.datasource.DataSourceUtils;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Repository;
 import springContents.model.User;
 
 import javax.sql.DataSource;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 @Repository
 public class UserDAO {
@@ -58,8 +61,8 @@ public class UserDAO {
         String sql = "INSERT INTO users (username, hashed_pwd, title, fname, lname, email) " +
                      "VALUES (?, ?, ?, ?, ?, ?)";
         
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        Connection conn = DataSourceUtils.getConnection(dataSource);
+        try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setString(1, username);
             stmt.setString(2, hashedPassword);
             stmt.setString(3, title);
@@ -88,8 +91,11 @@ public class UserDAO {
                 }
             }
         } catch (SQLException e) {
+            DataSourceUtils.releaseConnection(conn, dataSource);
             throw new RuntimeException("Error creating user", e);
         }
+        // Note: Don't release connection here if it's part of a transaction
+        // Spring will handle it when the transaction completes
     }
     
     public User authenticateUser(String username, String password) {
@@ -149,14 +155,46 @@ public class UserDAO {
         String sql = "INSERT INTO user_institution_assoc (user_id, inst_id) VALUES (?, ?) " +
                      "ON DUPLICATE KEY UPDATE user_id = user_id";
         
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        Connection conn = DataSourceUtils.getConnection(dataSource);
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, userId);
             stmt.setLong(2, institutionId);
-            stmt.executeUpdate();
+            int rowsAffected = stmt.executeUpdate();
+            if (rowsAffected == 0) {
+                throw new SQLException("Failed to associate user with institution");
+            }
         } catch (SQLException e) {
-            throw new RuntimeException("Error associating user with institution", e);
+            DataSourceUtils.releaseConnection(conn, dataSource);
+            throw new RuntimeException("Error associating user with institution: " + e.getMessage(), e);
         }
+        // Note: Don't release connection here if it's part of a transaction
+    }
+
+    /**
+     * Get all users for admin selection
+     */
+    public List<User> getAllUsers() {
+        String sql = "SELECT user_id, username, title, fname, lname, email FROM users ORDER BY lname, fname";
+        List<User> users = new ArrayList<>();
+        
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                User user = new User();
+                user.setUserId(rs.getLong("user_id"));
+                user.setUsername(rs.getString("username"));
+                user.setTitle(rs.getString("title"));
+                user.setFirstName(rs.getString("fname"));
+                user.setLastName(rs.getString("lname"));
+                user.setEmail(rs.getString("email"));
+                users.add(user);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error fetching all users", e);
+        }
+        
+        return users;
     }
 }
 
