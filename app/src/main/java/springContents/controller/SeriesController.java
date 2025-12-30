@@ -1,6 +1,8 @@
 package springContents.controller;
 
 import jakarta.servlet.http.HttpSession;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
+import springContents.dao.AdminDAO;
 import springContents.dao.RebbiDAO;
 import springContents.dao.ShiurSeriesDAO;
 import springContents.dao.TopicDAO;
@@ -19,6 +22,7 @@ import springContents.dao.UserDAO;
 import springContents.model.Rebbi;
 import springContents.model.Topic;
 import springContents.model.User;
+import springContents.service.SNSService;
 
 import java.util.HashMap;
 import java.util.List;
@@ -28,20 +32,28 @@ import java.util.Map;
 @RequestMapping("/api")
 public class SeriesController {
 
+    private static final Logger logger = LoggerFactory.getLogger(SeriesController.class);
+
     private final TopicDAO topicDAO;
     private final RebbiDAO rebbiDAO;
     private final ShiurSeriesDAO shiurSeriesDAO;
     private final UserDAO userDAO;
+    private final AdminDAO adminDAO;
+    private final SNSService snsService;
 
     @Autowired
     public SeriesController(TopicDAO topicDAO,
                             RebbiDAO rebbiDAO,
                             ShiurSeriesDAO shiurSeriesDAO,
-                            UserDAO userDAO) {
+                            UserDAO userDAO,
+                            AdminDAO adminDAO,
+                            SNSService snsService) {
         this.topicDAO = topicDAO;
         this.rebbiDAO = rebbiDAO;
         this.shiurSeriesDAO = shiurSeriesDAO;
         this.userDAO = userDAO;
+        this.adminDAO = adminDAO;
+        this.snsService = snsService;
     }
 
     @GetMapping("/topics")
@@ -91,6 +103,10 @@ public class SeriesController {
             return ResponseEntity.badRequest().body(resp);
         }
 
+        // Check if verification is required BEFORE adding gabbai
+        // Verification is required if the creator is NOT already a gabbai for another series from the same Rabbi
+        boolean needsVerification = !shiurSeriesDAO.isGabbaiForSameRebbi(current.getUserId(), rebbiId);
+
         long seriesId = shiurSeriesDAO.createSeries(rebbiId, topicId, requiresPermission, instId, description);
 
         // Creator is always a gabbai
@@ -134,6 +150,32 @@ public class SeriesController {
                 shiurSeriesDAO.addGabbai(extra.getUserId(), seriesId);
             }
         }
+        
+        if (needsVerification) {
+            // Add to pending permission table
+            adminDAO.addPendingPermission(seriesId);
+            
+            // Get series details for notification
+            Map<String, Object> seriesDetails = shiurSeriesDAO.getSeriesDetails(seriesId);
+            if (seriesDetails != null) {
+                // Send SNS notification
+                try {
+                    snsService.notifyNewSeriesRequiringVerification(
+                        seriesId,
+                        description,
+                        (String) seriesDetails.get("rebbiName"),
+                        (String) seriesDetails.get("topicName"),
+                        (String) seriesDetails.get("institutionName"),
+                        current.getUsername()
+                    );
+                } catch (Exception e) {
+                    // Log error but don't fail the series creation
+                    // The series is already created and added to pending_permission
+                    // SNS notification failure shouldn't block the operation
+                    logger.error("Failed to send SNS notification for series {}: {}", seriesId, e.getMessage(), e);
+                }
+            }
+        }
 
         resp.put("success", true);
         resp.put("seriesId", seriesId);
@@ -169,5 +211,3 @@ public class SeriesController {
         }
     }
 }
-
-

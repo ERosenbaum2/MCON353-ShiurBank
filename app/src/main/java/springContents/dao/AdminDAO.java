@@ -118,4 +118,48 @@ public class AdminDAO {
             throw new RuntimeException("Error adding admin: " + e.getMessage(), e);
         }
     }
+
+    /**
+     * Add a pending permission entry for a series
+     */
+    public void addPendingPermission(Long seriesId) {
+        String sql = "INSERT INTO pending_permission (series_id) VALUES (?) " +
+                     "ON DUPLICATE KEY UPDATE series_id = series_id";
+
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, seriesId);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Error adding pending permission", e);
+        }
+    }
+
+    /**
+     * Get all admin email addresses
+     */
+    public List<String> getAdminEmails() {
+        String sql =
+            "SELECT u.email " +
+            "FROM admins a " +
+            "JOIN users u ON a.user_id = u.user_id";
+
+        List<String> emails = new ArrayList<>();
+
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    String email = rs.getString("email");
+                    if (email != null && !email.trim().isEmpty()) {
+                        emails.add(email);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error fetching admin emails", e);
+        }
+
+        return emails;
+    }
 }
