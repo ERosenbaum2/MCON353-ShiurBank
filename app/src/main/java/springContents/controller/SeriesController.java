@@ -19,6 +19,7 @@ import springContents.dao.UserDAO;
 import springContents.model.Rebbi;
 import springContents.model.Topic;
 import springContents.model.User;
+import springContents.service.SNSService;
 
 import java.util.HashMap;
 import java.util.List;
@@ -32,16 +33,19 @@ public class SeriesController {
     private final RebbiDAO rebbiDAO;
     private final ShiurSeriesDAO shiurSeriesDAO;
     private final UserDAO userDAO;
+    private final SNSService snsService;
 
     @Autowired
     public SeriesController(TopicDAO topicDAO,
                             RebbiDAO rebbiDAO,
                             ShiurSeriesDAO shiurSeriesDAO,
-                            UserDAO userDAO) {
+                            UserDAO userDAO,
+                            SNSService snsService) {
         this.topicDAO = topicDAO;
         this.rebbiDAO = rebbiDAO;
         this.shiurSeriesDAO = shiurSeriesDAO;
         this.userDAO = userDAO;
+        this.snsService = snsService;
     }
 
     @GetMapping("/topics")
@@ -133,6 +137,35 @@ public class SeriesController {
                 }
                 shiurSeriesDAO.addGabbai(extra.getUserId(), seriesId);
             }
+        }
+
+        // Send admin notification about new series creation
+        try {
+            Map<String, Object> seriesDetails = shiurSeriesDAO.getSeriesDetails(seriesId);
+            if (seriesDetails != null) {
+                String subject = "New Shiur Series Created";
+                String message = String.format(
+                    "A new shiur series has been created:\n\n" +
+                    "Series ID: %d\n" +
+                    "Description: %s\n" +
+                    "Topic: %s\n" +
+                    "Rebbi: %s\n" +
+                    "Institution: %s\n" +
+                    "Created by: %s (username: %s)\n",
+                    seriesId,
+                    seriesDetails.get("description"),
+                    seriesDetails.get("topicName"),
+                    seriesDetails.get("rebbiName"),
+                    seriesDetails.get("institutionName"),
+                    current.getFirstName() + " " + current.getLastName(),
+                    current.getUsername()
+                );
+                snsService.publishToAdminTopic(message, subject);
+            }
+        } catch (Exception e) {
+            // Log error but don't fail the request
+            // Notification failure shouldn't prevent series creation
+            System.err.println("Failed to send admin notification: " + e.getMessage());
         }
 
         resp.put("success", true);
