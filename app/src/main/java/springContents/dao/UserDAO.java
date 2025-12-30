@@ -8,6 +8,8 @@ import springContents.model.User;
 
 import javax.sql.DataSource;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 @Repository
 public class UserDAO {
@@ -166,6 +168,33 @@ public class UserDAO {
             throw new RuntimeException("Error associating user with institution: " + e.getMessage(), e);
         }
         // Note: Don't release connection here if it's part of a transaction
+    }
+
+    /**
+     * Get all users for admin selection
+     */
+    public List<User> getAllUsers() {
+        String sql = "SELECT user_id, username, title, fname, lname, email FROM users ORDER BY lname, fname";
+        List<User> users = new ArrayList<>();
+        
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                User user = new User();
+                user.setUserId(rs.getLong("user_id"));
+                user.setUsername(rs.getString("username"));
+                user.setTitle(rs.getString("title"));
+                user.setFirstName(rs.getString("fname"));
+                user.setLastName(rs.getString("lname"));
+                user.setEmail(rs.getString("email"));
+                users.add(user);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error fetching all users", e);
+        }
+        
+        return users;
     }
 }
 
