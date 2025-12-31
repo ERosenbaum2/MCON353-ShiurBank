@@ -23,6 +23,7 @@ import springContents.model.Rebbi;
 import springContents.model.Topic;
 import springContents.model.User;
 import springContents.service.SNSService;
+import springContents.service.S3Service;
 
 import java.util.HashMap;
 import java.util.List;
@@ -40,6 +41,7 @@ public class SeriesController {
     private final UserDAO userDAO;
     private final AdminDAO adminDAO;
     private final SNSService snsService;
+    private final S3Service s3Service;
 
     @Autowired
     public SeriesController(TopicDAO topicDAO,
@@ -47,13 +49,15 @@ public class SeriesController {
                             ShiurSeriesDAO shiurSeriesDAO,
                             UserDAO userDAO,
                             AdminDAO adminDAO,
-                            SNSService snsService) {
+                            SNSService snsService,
+                            S3Service s3Service) {
         this.topicDAO = topicDAO;
         this.rebbiDAO = rebbiDAO;
         this.shiurSeriesDAO = shiurSeriesDAO;
         this.userDAO = userDAO;
         this.adminDAO = adminDAO;
         this.snsService = snsService;
+        this.s3Service = s3Service;
     }
 
     @GetMapping("/topics")
@@ -108,6 +112,17 @@ public class SeriesController {
         boolean needsVerification = !shiurSeriesDAO.isGabbaiForSameRebbi(current.getUserId(), rebbiId);
 
         long seriesId = shiurSeriesDAO.createSeries(rebbiId, topicId, requiresPermission, instId, description);
+
+        // Create S3 bucket for the series
+        // This must happen within the transaction so it rolls back if bucket creation fails
+        try {
+            String bucketName = s3Service.createSeriesBucket(seriesId);
+            logger.info("Created S3 bucket {} for series {}", bucketName, seriesId);
+        } catch (Exception e) {
+            logger.error("Failed to create S3 bucket for series {}: {}", seriesId, e.getMessage(), e);
+            // Re-throw to trigger transaction rollback
+            throw new RuntimeException("Failed to create S3 bucket for series: " + e.getMessage(), e);
+        }
 
         // Creator is always a gabbai
         shiurSeriesDAO.addGabbai(current.getUserId(), seriesId);
@@ -196,6 +211,20 @@ public class SeriesController {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(details);
+    }
+
+    @GetMapping("/series/{id}/is-gabbai")
+    public ResponseEntity<Map<String, Boolean>> checkIfGabbai(@PathVariable("id") Long id,
+                                                              HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        boolean isGabbai = shiurSeriesDAO.isGabbaiForSeries(user.getUserId(), id);
+        Map<String, Boolean> response = new HashMap<>();
+        response.put("isGabbai", isGabbai);
+        return ResponseEntity.ok(response);
     }
 
     private Long toLong(Object value) {

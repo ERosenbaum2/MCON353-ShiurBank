@@ -7,6 +7,7 @@
   <link rel="icon" type="image/png" href="/ShiurBank Logo No Words.png">
   <link rel="stylesheet" href="/common-styles.css">
   <link rel="stylesheet" href="/dashboard-styles.css">
+  <link rel="stylesheet" href="/series.css">
   <script src="/series.js" defer></script>
 </head>
 <body>
@@ -28,14 +29,105 @@
     <button type="button" class="btn-secondary" onclick="window.location.href='/dashboard.html'" style="margin: 0.5rem 0 1rem 0;">
       Back to Dashboard
     </button>
+
+    <!-- Upload button (only visible for gabbaim) -->
+    <button type="button" id="upload-shiur-btn" class="btn-primary hidden" onclick="openUploadModal()">
+      Upload Shiur
+    </button>
+
     <p id="series-meta"></p>
     <p id="series-description"></p>
 
     <hr style="margin:2rem 0;">
 
-    <h3>Shiurim in this Series</h3>
-    <p>(Coming soon.)</p>
+    <div class="shiurim-section">
+      <div class="shiurim-header">
+        <h3>Shiurim in this Series</h3>
+        <div class="sort-controls">
+          <label for="sort-select">Sort by:</label>
+          <select id="sort-select" onchange="loadRecordings()">
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="title">Title (A-Z)</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="recordings-loading" class="loading hidden">Loading shiurim...</div>
+      <div id="recordings-error" class="error hidden"></div>
+      <div id="recordings-list"></div>
+    </div>
   </div>
 </main>
+
+<!-- Upload Modal -->
+<div id="upload-modal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Upload Shiur</h2>
+      <button class="close-modal" onclick="closeUploadModal()">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <div id="success-message" class="success-message"></div>
+      <div id="error-message" class="error-message"></div>
+
+      <form id="upload-form">
+        <div class="form-group">
+          <label for="title">Title <span class="required">*</span></label>
+          <input type="text" id="title" name="title" required maxlength="255">
+        </div>
+
+        <div class="form-group">
+          <label for="recorded-at">Date and Time Recorded <span class="required">*</span></label>
+          <input type="datetime-local" id="recorded-at" name="recordedAt" required>
+        </div>
+
+        <div class="form-group">
+          <label>Keywords <span class="required">*</span></label>
+          <small>Enter 6 keywords to help with search capabilities</small>
+          <div class="keywords-grid">
+            <input type="text" id="keyword1" name="keyword1" placeholder="Keyword 1" required maxlength="100">
+            <input type="text" id="keyword2" name="keyword2" placeholder="Keyword 2" required maxlength="100">
+            <input type="text" id="keyword3" name="keyword3" placeholder="Keyword 3" required maxlength="100">
+            <input type="text" id="keyword4" name="keyword4" placeholder="Keyword 4" required maxlength="100">
+            <input type="text" id="keyword5" name="keyword5" placeholder="Keyword 5" required maxlength="100">
+            <input type="text" id="keyword6" name="keyword6" placeholder="Keyword 6" required maxlength="100">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="description">Description</label>
+          <textarea id="description" name="description" rows="4"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Audio File <span class="required">*</span></label>
+          <small>Max file size: 1GB. Supported formats: MP3, WAV, M4A, OGG, FLAC, AAC, OPUS, and more.</small>
+          <div class="file-input-wrapper">
+            <label for="audio-file" class="file-input-label">
+              📁 Choose Audio File
+            </label>
+            <input type="file" id="audio-file" name="audioFile" accept="audio/*" required>
+          </div>
+          <div id="file-name"></div>
+        </div>
+
+        <div id="progress-container" class="progress-container">
+          <div class="progress-bar-wrapper">
+            <div id="progress-bar" class="progress-bar">0%</div>
+          </div>
+          <div id="progress-text" class="progress-text">Uploading...</div>
+        </div>
+      </form>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn-cancel" onclick="closeUploadModal()">Cancel</button>
+      <button type="button" id="submit-upload-btn" class="btn-upload" onclick="submitUpload()">Upload Shiur</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

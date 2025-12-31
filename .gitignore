@@ -6,8 +6,8 @@ out/
 app/dbcredentials.properties
 app/src/main/resources/dbcredentials.properties
 plugin/
-.idea/
 gradle/
+app/src/main/resources/application.properties
 
 ### Eclipse ###
 .apt_generated
