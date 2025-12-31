@@ -76,16 +76,16 @@ public class ShiurSeriesDAO {
     public List<Map<String, Object>> getSeriesForGabbai(Long userId) {
         String sql =
             "SELECT s.series_id, s.description, " +
-            "       t.name AS topic_name, " +
-            "       CONCAT(r.title, ' ', r.fname, ' ', r.lname) AS rebbi_name, " +
-            "       i.name AS inst_name " +
-            "FROM gabbaim g " +
-            "JOIN shiur_series s ON g.series_id = s.series_id " +
-            "JOIN topics t ON s.topic_id = t.topic_id " +
-            "JOIN rebbeim r ON s.rebbi_id = r.rebbi_id " +
-            "JOIN institutions i ON s.inst_id = i.inst_id " +
-            "WHERE g.user_id = ? " +
-            "ORDER BY s.series_id DESC";
+                "       t.name AS topic_name, " +
+                "       CONCAT(r.title, ' ', r.fname, ' ', r.lname) AS rebbi_name, " +
+                "       i.name AS inst_name " +
+                "FROM gabbaim g " +
+                "JOIN shiur_series s ON g.series_id = s.series_id " +
+                "JOIN topics t ON s.topic_id = t.topic_id " +
+                "JOIN rebbeim r ON s.rebbi_id = r.rebbi_id " +
+                "JOIN institutions i ON s.inst_id = i.inst_id " +
+                "WHERE g.user_id = ? " +
+                "ORDER BY s.series_id DESC";
 
         List<Map<String, Object>> result = new ArrayList<>();
 
@@ -120,14 +120,14 @@ public class ShiurSeriesDAO {
     public Map<String, Object> getSeriesDetails(Long seriesId) {
         String sql =
             "SELECT s.series_id, s.description, " +
-            "       t.name AS topic_name, " +
-            "       CONCAT(r.title, ' ', r.fname, ' ', r.lname) AS rebbi_name, " +
-            "       i.name AS inst_name " +
-            "FROM shiur_series s " +
-            "JOIN topics t ON s.topic_id = t.topic_id " +
-            "JOIN rebbeim r ON s.rebbi_id = r.rebbi_id " +
-            "JOIN institutions i ON s.inst_id = i.inst_id " +
-            "WHERE s.series_id = ?";
+                "       t.name AS topic_name, " +
+                "       CONCAT(r.title, ' ', r.fname, ' ', r.lname) AS rebbi_name, " +
+                "       i.name AS inst_name " +
+                "FROM shiur_series s " +
+                "JOIN topics t ON s.topic_id = t.topic_id " +
+                "JOIN rebbeim r ON s.rebbi_id = r.rebbi_id " +
+                "JOIN institutions i ON s.inst_id = i.inst_id " +
+                "WHERE s.series_id = ?";
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -156,9 +156,9 @@ public class ShiurSeriesDAO {
     public List<String> getSubscriberEmailsForSeries(Long seriesId) {
         String sql =
             "SELECT DISTINCT u.email " +
-            "FROM subscribers s " +
-            "JOIN users u ON s.user_id = u.user_id " +
-            "WHERE s.series_id = ?";
+                "FROM subscribers s " +
+                "JOIN users u ON s.user_id = u.user_id " +
+                "WHERE s.series_id = ?";
 
         List<String> emails = new ArrayList<>();
 
@@ -180,7 +180,6 @@ public class ShiurSeriesDAO {
 
         return emails;
     }
-}
 
     /**
      * Check if a gabbai is already a gabbai for another series from the same Rabbi
@@ -190,10 +189,10 @@ public class ShiurSeriesDAO {
      */
     public boolean isGabbaiForSameRebbi(Long userId, Long rebbiId) {
         String sql =
-            "SELECT COUNT(*) " +
-            "FROM gabbaim g " +
-            "JOIN shiur_series s ON g.series_id = s.series_id " +
-            "WHERE g.user_id = ? AND s.rebbi_id = ?";
+                "SELECT COUNT(*) " +
+                        "FROM gabbaim g " +
+                        "JOIN shiur_series s ON g.series_id = s.series_id " +
+                        "WHERE g.user_id = ? AND s.rebbi_id = ?";
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
