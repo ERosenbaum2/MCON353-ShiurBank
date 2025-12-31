@@ -97,7 +97,7 @@ public class SeriesController {
                 : Boolean.FALSE;
 
         if (rebbiId == null || topicId == null || instId == null ||
-            description == null || description.trim().isEmpty()) {
+                description == null || description.trim().isEmpty()) {
             resp.put("success", false);
             resp.put("message", "Missing required fields.");
             return ResponseEntity.badRequest().body(resp);
@@ -150,23 +150,23 @@ public class SeriesController {
                 shiurSeriesDAO.addGabbai(extra.getUserId(), seriesId);
             }
         }
-        
+
         if (needsVerification) {
             // Add to pending permission table
             adminDAO.addPendingPermission(seriesId);
-            
+
             // Get series details for notification
             Map<String, Object> seriesDetails = shiurSeriesDAO.getSeriesDetails(seriesId);
             if (seriesDetails != null) {
                 // Send SNS notification
                 try {
                     snsService.notifyNewSeriesRequiringVerification(
-                        seriesId,
-                        description,
-                        (String) seriesDetails.get("rebbiName"),
-                        (String) seriesDetails.get("topicName"),
-                        (String) seriesDetails.get("institutionName"),
-                        current.getUsername()
+                            seriesId,
+                            description,
+                            (String) seriesDetails.get("rebbiName"),
+                            (String) seriesDetails.get("topicName"),
+                            (String) seriesDetails.get("institutionName"),
+                            current.getUsername()
                     );
                 } catch (Exception e) {
                     // Log error but don't fail the series creation
@@ -177,37 +177,9 @@ public class SeriesController {
             }
         }
 
-        // Send admin notification about new series creation
-        try {
-            Map<String, Object> seriesDetails = shiurSeriesDAO.getSeriesDetails(seriesId);
-            if (seriesDetails != null) {
-                String subject = "New Shiur Series Created";
-                String message = String.format(
-                    "A new shiur series has been created:\n\n" +
-                    "Series ID: %d\n" +
-                    "Description: %s\n" +
-                    "Topic: %s\n" +
-                    "Rebbi: %s\n" +
-                    "Institution: %s\n" +
-                    "Created by: %s (username: %s)\n",
-                    seriesId,
-                    seriesDetails.get("description"),
-                    seriesDetails.get("topicName"),
-                    seriesDetails.get("rebbiName"),
-                    seriesDetails.get("institutionName"),
-                    current.getFirstName() + " " + current.getLastName(),
-                    current.getUsername()
-                );
-                snsService.publishToAdminTopic(message, subject);
-            }
-        } catch (Exception e) {
-            // Log error but don't fail the request
-            // Notification failure shouldn't prevent series creation
-            System.err.println("Failed to send admin notification: " + e.getMessage());
-        }
-
         resp.put("success", true);
         resp.put("seriesId", seriesId);
+        resp.put("needsVerification", needsVerification);
         return ResponseEntity.ok(resp);
     }
 
