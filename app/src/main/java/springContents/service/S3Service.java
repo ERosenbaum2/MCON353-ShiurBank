@@ -10,11 +10,14 @@ import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
+import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import software.amazon.awssdk.services.s3.model.S3Object;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
 
 import java.io.IOException;
@@ -55,6 +58,49 @@ public class S3Service {
         } else {
             logger.info("S3Service initialized with bucket: {} in region: {} using profile: {}",
                     bucketName, region, profileName);
+        }
+    }
+
+    /**
+     * Create a new S3 bucket for a series
+     * @param seriesId The series ID to use for bucket naming
+     * @return The bucket name that was created
+     * @throws RuntimeException if bucket creation fails
+     */
+    public String createSeriesBucket(Long seriesId) {
+        String bucketName = "shiur-series-" + seriesId;
+
+        try {
+            // Check if bucket already exists
+            try {
+                HeadBucketRequest headBucketRequest = HeadBucketRequest.builder()
+                        .bucket(bucketName)
+                        .build();
+                s3Client.headBucket(headBucketRequest);
+                logger.warn("Bucket {} already exists", bucketName);
+                return bucketName;
+            } catch (S3Exception e) {
+                if (e.statusCode() != 404) {
+                    throw e;
+                }
+                // Bucket doesn't exist, proceed with creation
+            }
+
+            // Create the bucket
+            CreateBucketRequest createBucketRequest = CreateBucketRequest.builder()
+                    .bucket(bucketName)
+                    .build();
+
+            s3Client.createBucket(createBucketRequest);
+            logger.info("Successfully created S3 bucket: {}", bucketName);
+
+            return bucketName;
+        } catch (S3Exception e) {
+            logger.error("Failed to create S3 bucket {}: {} - {}", bucketName, e.awsErrorDetails().errorCode(), e.awsErrorDetails().errorMessage(), e);
+            throw new RuntimeException("Failed to create S3 bucket for series " + seriesId + ": " + e.awsErrorDetails().errorMessage(), e);
+        } catch (Exception e) {
+            logger.error("Unexpected error creating S3 bucket {}: {}", bucketName, e.getMessage(), e);
+            throw new RuntimeException("Failed to create S3 bucket for series " + seriesId, e);
         }
     }
 
