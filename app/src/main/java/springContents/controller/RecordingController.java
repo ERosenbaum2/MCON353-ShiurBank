@@ -18,6 +18,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -38,6 +39,38 @@ public class RecordingController {
         this.recordingDAO = recordingDAO;
         this.shiurSeriesDAO = shiurSeriesDAO;
         this.s3Service = s3Service;
+    }
+
+    @GetMapping("/series/{seriesId}/recordings")
+    public ResponseEntity<Map<String, Object>> getRecordings(
+            @PathVariable Long seriesId,
+            @RequestParam(value = "sort", defaultValue = "newest") String sortOrder,
+            HttpSession session) {
+
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            // Check authentication
+            User user = (User) session.getAttribute("user");
+            if (user == null) {
+                response.put("success", false);
+                response.put("message", "Not logged in.");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            }
+
+            // Get recordings
+            List<Map<String, Object>> recordings = recordingDAO.getRecordingsForSeries(seriesId, sortOrder);
+
+            response.put("success", true);
+            response.put("recordings", recordings);
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            logger.error("Error fetching recordings for series {}: {}", seriesId, e.getMessage(), e);
+            response.put("success", false);
+            response.put("message", "Failed to fetch recordings.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
     }
 
     @PostMapping("/series/{seriesId}/recordings")

@@ -40,8 +40,23 @@
 
     <hr style="margin:2rem 0;">
 
-    <h3>Shiurim in this Series</h3>
-    <p>(Coming soon.)</p>
+    <div class="shiurim-section">
+      <div class="shiurim-header">
+        <h3>Shiurim in this Series</h3>
+        <div class="sort-controls">
+          <label for="sort-select">Sort by:</label>
+          <select id="sort-select" onchange="loadRecordings()">
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="title">Title (A-Z)</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="recordings-loading" class="loading hidden">Loading shiurim...</div>
+      <div id="recordings-error" class="error hidden"></div>
+      <div id="recordings-list"></div>
+    </div>
   </div>
 </main>
 

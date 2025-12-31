@@ -147,6 +147,28 @@ public class S3Service {
     }
 
     /**
+     * Get audio file from a series bucket as InputStream
+     * @param seriesId The series ID
+     * @param fileName The file name/key in the bucket
+     * @return ResponseInputStream containing the audio file
+     */
+    public ResponseInputStream<GetObjectResponse> getAudioFileFromSeriesBucket(Long seriesId, String fileName) {
+        String bucketName = "shiur-series-" + seriesId;
+
+        try {
+            GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(fileName)
+                    .build();
+
+            return s3Client.getObject(getObjectRequest);
+        } catch (Exception e) {
+            logger.error("Error getting audio file {} from series bucket {}: {}", fileName, bucketName, e.getMessage(), e);
+            throw new RuntimeException("Failed to retrieve audio file: " + fileName, e);
+        }
+    }
+
+    /**
      * List all audio files in the S3 bucket
      */
     public List<String> listAudioFiles() {

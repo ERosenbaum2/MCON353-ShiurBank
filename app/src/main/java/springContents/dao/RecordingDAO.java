@@ -6,6 +6,10 @@ import org.springframework.stereotype.Repository;
 import javax.sql.DataSource;
 import java.sql.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Repository
 public class RecordingDAO {
@@ -84,5 +88,47 @@ public class RecordingDAO {
         } catch (SQLException e) {
             throw new RuntimeException("Error updating s3_file_path for recording", e);
         }
+    }
+
+    /**
+     * Get all recordings for a series
+     * @param seriesId The series ID
+     * @param sortOrder Sort order: "newest", "oldest", or "title"
+     * @return List of recording maps with recordingId, title, recordedAt, description, s3FilePath
+     */
+    public List<Map<String, Object>> getRecordingsForSeries(Long seriesId, String sortOrder) {
+        String orderByClause = switch (sortOrder) {
+            case "oldest" -> "ORDER BY recorded_at ASC";
+            case "title" -> "ORDER BY title ASC";
+            default -> "ORDER BY recorded_at DESC";
+        };
+
+        String sql = "SELECT recording_id, title, recorded_at, description, s3_file_path " +
+                "FROM shiur_recordings " +
+                "WHERE series_id = ? " +
+                orderByClause;
+
+        List<Map<String, Object>> recordings = new ArrayList<>();
+
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setLong(1, seriesId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> recording = new HashMap<>();
+                    recording.put("recordingId", rs.getLong("recording_id"));
+                    recording.put("title", rs.getString("title"));
+                    recording.put("recordedAt", rs.getTimestamp("recorded_at").toLocalDateTime());
+                    recording.put("description", rs.getString("description"));
+                    recording.put("s3FilePath", rs.getString("s3_file_path"));
+                    recordings.add(recording);
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error fetching recordings for series", e);
+        }
+
+        return recordings;
     }
 }
