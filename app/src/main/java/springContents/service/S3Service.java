@@ -4,10 +4,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
@@ -16,11 +18,13 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Object;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -101,6 +105,44 @@ public class S3Service {
         } catch (Exception e) {
             logger.error("Unexpected error creating S3 bucket {}: {}", bucketName, e.getMessage(), e);
             throw new RuntimeException("Failed to create S3 bucket for series " + seriesId, e);
+        }
+    }
+
+    /**
+     * Upload an audio file to the series bucket
+     * @param seriesId The series ID
+     * @param recordingId The recording ID to use in the file path
+     * @param file The audio file to upload
+     * @param fileExtension The file extension (e.g., "mp3", "wav")
+     * @return The S3 file path (key) of the uploaded file
+     * @throws RuntimeException if upload fails
+     */
+    public String uploadAudioFile(Long seriesId, Long recordingId, MultipartFile file, String fileExtension) {
+        String bucketName = "shiur-series-" + seriesId;
+        String key = recordingId + "." + fileExtension;
+
+        try (InputStream inputStream = file.getInputStream()) {
+            PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(key)
+                    .contentType(file.getContentType())
+                    .contentLength(file.getSize())
+                    .build();
+
+            s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(inputStream, file.getSize()));
+            logger.info("Successfully uploaded file to S3: {}/{}", bucketName, key);
+
+            return key;
+        } catch (IOException e) {
+            logger.error("Error reading file for upload: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to read file for upload", e);
+        } catch (S3Exception e) {
+            logger.error("Failed to upload to S3 {}/{}: {} - {}", bucketName, key,
+                    e.awsErrorDetails().errorCode(), e.awsErrorDetails().errorMessage(), e);
+            throw new RuntimeException("Failed to upload file to S3: " + e.awsErrorDetails().errorMessage(), e);
+        } catch (Exception e) {
+            logger.error("Unexpected error uploading to S3: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to upload file to S3", e);
         }
     }
 

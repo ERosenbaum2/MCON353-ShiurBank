@@ -57,6 +57,7 @@ CREATE TABLE shiur_recordings (
     recording_id   BIGINT AUTO_INCREMENT PRIMARY KEY,
     series_id      BIGINT NOT NULL,
     s3_file_path   TEXT NOT NULL,
+    title          VARCHAR(255) NOT NULL,
     recorded_at    DATETIME NOT NULL,
     keyword_1      VARCHAR(100) NOT NULL,
     keyword_2      VARCHAR(100) NOT NULL,

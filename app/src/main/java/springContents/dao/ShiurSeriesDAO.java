@@ -186,4 +186,30 @@ public class ShiurSeriesDAO {
 
         return false;
     }
+
+    /**
+     * Check if a user is a gabbai for a specific series
+     * @param userId The user ID
+     * @param seriesId The series ID
+     * @return true if the user is a gabbai for this series, false otherwise
+     */
+    public boolean isGabbaiForSeries(Long userId, Long seriesId) {
+        String sql = "SELECT COUNT(*) FROM gabbaim WHERE user_id = ? AND series_id = ?";
+
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setLong(1, userId);
+            stmt.setLong(2, seriesId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error checking if user is gabbai for series", e);
+        }
+
+        return false;
+    }
 }

@@ -8,6 +8,8 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.Bucket;
 import software.amazon.awssdk.services.s3.model.ListBucketsResponse;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 
 import java.io.InputStream;
 import java.time.Instant;
@@ -67,6 +69,15 @@ public class S3BucketLister {
                     System.out.println(count + ". " + bucketName);
                     System.out.println("   Created: " + creationDate);
 
+                    // Count objects in bucket
+                    try {
+                        int objectCount = countObjectsInBucket(s3Client, bucketName);
+                        System.out.println("   Objects: " + objectCount);
+                    } catch (Exception e) {
+                        System.out.println("   Objects: Unable to count (Error: " + e.getMessage() + ")");
+                        logger.warn("Failed to count objects in bucket: " + bucketName, e);
+                    }
+
                     // Highlight series buckets
                     if (bucketName.startsWith("shiur-series-")) {
                         System.out.println("   >>> This is a series bucket! <<<");
@@ -104,5 +115,35 @@ public class S3BucketLister {
                 s3Client.close();
             }
         }
+    }
+
+    /**
+     * Counts the total number of objects in a bucket.
+     * Handles pagination for buckets with more than 1000 objects.
+     *
+     * @param s3Client The S3 client
+     * @param bucketName The name of the bucket
+     * @return The total number of objects in the bucket
+     */
+    private static int countObjectsInBucket(S3Client s3Client, String bucketName) {
+        int totalCount = 0;
+        String continuationToken = null;
+
+        do {
+            ListObjectsV2Request.Builder requestBuilder = ListObjectsV2Request.builder()
+                    .bucket(bucketName)
+                    .maxKeys(1000);
+
+            if (continuationToken != null) {
+                requestBuilder.continuationToken(continuationToken);
+            }
+
+            ListObjectsV2Response response = s3Client.listObjectsV2(requestBuilder.build());
+            totalCount += response.keyCount();
+            continuationToken = response.nextContinuationToken();
+
+        } while (continuationToken != null);
+
+        return totalCount;
     }
 }

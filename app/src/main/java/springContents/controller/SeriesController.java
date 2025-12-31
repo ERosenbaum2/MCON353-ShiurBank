@@ -213,6 +213,20 @@ public class SeriesController {
         return ResponseEntity.ok(details);
     }
 
+    @GetMapping("/series/{id}/is-gabbai")
+    public ResponseEntity<Map<String, Boolean>> checkIfGabbai(@PathVariable("id") Long id,
+                                                              HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        boolean isGabbai = shiurSeriesDAO.isGabbaiForSeries(user.getUserId(), id);
+        Map<String, Boolean> response = new HashMap<>();
+        response.put("isGabbai", isGabbai);
+        return ResponseEntity.ok(response);
+    }
+
     private Long toLong(Object value) {
         if (value == null) {
             return null;
