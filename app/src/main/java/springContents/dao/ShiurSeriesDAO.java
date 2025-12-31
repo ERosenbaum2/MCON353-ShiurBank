@@ -153,6 +153,35 @@ public class ShiurSeriesDAO {
         return null;
     }
 
+    public List<String> getSubscriberEmailsForSeries(Long seriesId) {
+        String sql =
+            "SELECT DISTINCT u.email " +
+            "FROM subscribers s " +
+            "JOIN users u ON s.user_id = u.user_id " +
+            "WHERE s.series_id = ?";
+
+        List<String> emails = new ArrayList<>();
+
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setLong(1, seriesId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    String email = rs.getString("email");
+                    if (email != null && !email.trim().isEmpty()) {
+                        emails.add(email.trim());
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error fetching subscriber emails for series", e);
+        }
+
+        return emails;
+    }
+}
+
     /**
      * Check if a gabbai is already a gabbai for another series from the same Rabbi
      * @param userId The user ID of the gabbai

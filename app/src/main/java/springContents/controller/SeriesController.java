@@ -177,6 +177,35 @@ public class SeriesController {
             }
         }
 
+        // Send admin notification about new series creation
+        try {
+            Map<String, Object> seriesDetails = shiurSeriesDAO.getSeriesDetails(seriesId);
+            if (seriesDetails != null) {
+                String subject = "New Shiur Series Created";
+                String message = String.format(
+                    "A new shiur series has been created:\n\n" +
+                    "Series ID: %d\n" +
+                    "Description: %s\n" +
+                    "Topic: %s\n" +
+                    "Rebbi: %s\n" +
+                    "Institution: %s\n" +
+                    "Created by: %s (username: %s)\n",
+                    seriesId,
+                    seriesDetails.get("description"),
+                    seriesDetails.get("topicName"),
+                    seriesDetails.get("rebbiName"),
+                    seriesDetails.get("institutionName"),
+                    current.getFirstName() + " " + current.getLastName(),
+                    current.getUsername()
+                );
+                snsService.publishToAdminTopic(message, subject);
+            }
+        } catch (Exception e) {
+            // Log error but don't fail the request
+            // Notification failure shouldn't prevent series creation
+            System.err.println("Failed to send admin notification: " + e.getMessage());
+        }
+
         resp.put("success", true);
         resp.put("seriesId", seriesId);
         return ResponseEntity.ok(resp);
