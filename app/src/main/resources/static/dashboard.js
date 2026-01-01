@@ -140,6 +140,6 @@ async function loadMySeries() {
         });
     } catch (error) {
         console.error('Error loading my series', error);
-        listEl.textContent = 'Error loading your series.';
+        listEl.textContent = 'Could not load your series.';
     }
 }
