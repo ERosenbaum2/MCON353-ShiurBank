@@ -5,6 +5,7 @@ out/
 !**/src/test/**/out/
 app/dbcredentials.properties
 app/src/main/resources/dbcredentials.properties
+dbcredentials.properties
 plugin/
 .idea/
 gradle/
