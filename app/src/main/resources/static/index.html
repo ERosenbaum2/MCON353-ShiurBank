@@ -117,5 +117,128 @@
         </div>
     </div>
 </div>
+
+<!-- Database Control Floating Button -->
+<button id="db-control-btn" class="db-control-floating-btn" onclick="openDbControlModal()" title="Database Controls">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+        <path d="M9 9h6v6H9z"></path>
+    </svg>
+</button>
+
+<!-- Database Control Modal -->
+<div id="db-control-modal" class="db-control-modal-overlay hidden">
+    <div class="db-control-modal-content">
+        <button class="db-control-modal-close" onclick="closeDbControlModal()">&times;</button>
+        
+        <!-- Password Section -->
+        <div id="db-control-password-section">
+            <h3 style="margin-top: 0; margin-bottom: 1rem; color: #1B4965;">Database Control</h3>
+            <p style="margin-bottom: 1rem; color: #666; font-size: 0.9rem;">Enter admin password to manage database</p>
+            <div class="form-group">
+                <label for="db-control-password">Admin Password:</label>
+                <input type="password" id="db-control-password" placeholder="Enter admin password" autofocus>
+            </div>
+            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                <button id="db-control-password-submit" class="btn-primary" style="flex: 1;">Continue</button>
+                <button onclick="closeDbControlModal()" class="btn-secondary" style="flex: 1;">Cancel</button>
+            </div>
+            <p id="db-control-password-error" style="margin-top: 0.75rem; margin-bottom: 0; font-size: 0.85rem; color: #e74c3c; display: none;"></p>
+        </div>
+        
+        <!-- Database Control Section (shown after password verification) -->
+        <div id="db-control-content-section" style="display: none;">
+            <h3 style="margin-top: 0; margin-bottom: 1rem; color: #1B4965;">Database Control</h3>
+            <div style="margin-bottom: 1rem;">
+                <p style="margin: 0.5rem 0; font-size: 0.95rem;">
+                    Status: <span id="db-control-status" style="font-weight: bold; color: #1B4965;">Checking...</span>
+                </p>
+            </div>
+            <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                <button id="db-control-check-btn" class="btn-primary" style="flex: 1; font-size: 0.9rem; padding: 0.6rem;">Refresh</button>
+                <button id="db-control-start-btn" class="btn-primary" style="flex: 1; font-size: 0.9rem; padding: 0.6rem; background-color: #28a745; border-color: #28a745;" disabled>Start</button>
+                <button id="db-control-stop-btn" class="btn-primary" style="flex: 1; font-size: 0.9rem; padding: 0.6rem; background-color: #dc3545; border-color: #dc3545;" disabled>Stop</button>
+            </div>
+            <p id="db-control-message" style="margin: 0; font-size: 0.85rem; color: #666; min-height: 1.2rem;"></p>
+        </div>
+    </div>
+</div>
+
+<style>
+.db-control-floating-btn {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: #3F88C5;
+    color: white;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    transition: all 0.3s ease;
+}
+
+.db-control-floating-btn:hover {
+    background-color: #2d6a9f;
+    transform: scale(1.1);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.db-control-floating-btn:active {
+    transform: scale(0.95);
+}
+
+.db-control-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.db-control-modal-content {
+    background-color: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    max-width: 400px;
+    width: 90%;
+    position: relative;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+.db-control-modal-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #999;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.db-control-modal-close:hover {
+    color: #333;
+}
+</style>
+
 </body>
 </html>

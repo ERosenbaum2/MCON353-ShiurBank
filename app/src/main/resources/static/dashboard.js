@@ -3,6 +3,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     await checkAuthAndLoadUser();
     await checkAdminStatus();
     wireCreateSeriesButton();
+    wireDatabaseControls();
+    loadDatabaseStatus();
     loadMySeries();
 });
 
@@ -83,6 +85,172 @@ async function checkAdminStatus() {
     }
 }
 
+// Wire up database control buttons
+function wireDatabaseControls() {
+    const checkBtn = document.getElementById('check-db-status-btn');
+    const startBtn = document.getElementById('start-db-btn');
+    const stopBtn = document.getElementById('stop-db-btn');
+
+    if (checkBtn) {
+        checkBtn.addEventListener('click', loadDatabaseStatus);
+    }
+    if (startBtn) {
+        startBtn.addEventListener('click', startDatabase);
+    }
+    if (stopBtn) {
+        stopBtn.addEventListener('click', stopDatabase);
+    }
+}
+
+// Load database status
+async function loadDatabaseStatus() {
+    const statusDisplay = document.getElementById('db-status-display');
+    const startBtn = document.getElementById('start-db-btn');
+    const stopBtn = document.getElementById('stop-db-btn');
+    const messageEl = document.getElementById('db-message');
+
+    if (!statusDisplay) return;
+
+    try {
+        statusDisplay.textContent = 'Checking...';
+        messageEl.textContent = '';
+        
+        const response = await fetch('/api/admin/rds/status');
+        
+        if (!response.ok) {
+            if (response.status === 403) {
+                statusDisplay.textContent = 'Unknown (Admin access required)';
+                messageEl.textContent = 'Note: Database controls require admin access.';
+                startBtn.disabled = true;
+                stopBtn.disabled = true;
+            } else {
+                statusDisplay.textContent = 'Error checking status';
+                messageEl.textContent = 'Could not check database status. You can still try to start it.';
+                // Enable start button even on error - might be able to start it
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+            }
+            return;
+        }
+
+        const data = await response.json();
+        if (data.success) {
+            const status = data.status || 'unknown';
+            statusDisplay.textContent = status;
+            messageEl.textContent = '';
+
+            // Enable/disable buttons based on status
+            if (status.toLowerCase() === 'stopped') {
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+                messageEl.textContent = 'Database is stopped. Click "Start Database" to start it.';
+            } else if (status.toLowerCase() === 'available' || status.toLowerCase() === 'running') {
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                messageEl.textContent = 'Database is running.';
+            } else if (status.toLowerCase() === 'starting') {
+                startBtn.disabled = true;
+                stopBtn.disabled = true;
+                messageEl.textContent = 'Database is starting. Please wait...';
+            } else if (status.toLowerCase() === 'stopping') {
+                startBtn.disabled = true;
+                stopBtn.disabled = true;
+                messageEl.textContent = 'Database is stopping. Please wait...';
+            } else {
+                startBtn.disabled = false;
+                stopBtn.disabled = false;
+                messageEl.textContent = `Database status: ${status}`;
+            }
+        } else {
+            statusDisplay.textContent = 'Error';
+            messageEl.textContent = data.message || 'Could not get database status.';
+            startBtn.disabled = false; // Allow trying to start anyway
+            stopBtn.disabled = true;
+        }
+    } catch (error) {
+        console.error('Error loading database status:', error);
+        statusDisplay.textContent = 'Connection Error';
+        messageEl.textContent = 'Could not connect to check status. Database might be down. Try starting it.';
+        startBtn.disabled = false; // Enable start button - might be able to start it
+        stopBtn.disabled = true;
+    }
+}
+
+// Start database
+async function startDatabase() {
+    const startBtn = document.getElementById('start-db-btn');
+    const messageEl = document.getElementById('db-message');
+    
+    if (!startBtn) return;
+    
+    startBtn.disabled = true;
+    startBtn.textContent = 'Starting...';
+    messageEl.textContent = 'Attempting to start database...';
+
+    try {
+        const response = await fetch('/api/admin/rds/start', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            messageEl.textContent = 'Database start initiated! It may take 2-5 minutes to become available.';
+            // Reload status after a short delay
+            setTimeout(loadDatabaseStatus, 2000);
+        } else {
+            messageEl.textContent = 'Error: ' + (data.message || 'Failed to start database');
+            startBtn.disabled = false;
+            startBtn.textContent = 'Start Database';
+            loadDatabaseStatus();
+        }
+    } catch (error) {
+        console.error('Error starting database:', error);
+        messageEl.textContent = 'Error starting database. Check if you have admin access.';
+        startBtn.disabled = false;
+        startBtn.textContent = 'Start Database';
+    }
+}
+
+// Stop database
+async function stopDatabase() {
+    const stopBtn = document.getElementById('stop-db-btn');
+    const messageEl = document.getElementById('db-message');
+    
+    if (!stopBtn) return;
+    
+    stopBtn.disabled = true;
+    stopBtn.textContent = 'Stopping...';
+    messageEl.textContent = 'Attempting to stop database...';
+
+    try {
+        const response = await fetch('/api/admin/rds/stop', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            messageEl.textContent = 'Database stop initiated.';
+            setTimeout(loadDatabaseStatus, 2000);
+        } else {
+            messageEl.textContent = 'Error: ' + (data.message || 'Failed to stop database');
+            stopBtn.disabled = false;
+            stopBtn.textContent = 'Stop Database';
+            loadDatabaseStatus();
+        }
+    } catch (error) {
+        console.error('Error stopping database:', error);
+        messageEl.textContent = 'Error stopping database.';
+        stopBtn.disabled = false;
+        stopBtn.textContent = 'Stop Database';
+    }
+}
+
 async function loadMySeries() {
     const listEl = document.getElementById('my-series-list');
     if (!listEl) {
@@ -140,6 +308,6 @@ async function loadMySeries() {
         });
     } catch (error) {
         console.error('Error loading my series', error);
-        listEl.textContent = 'Error loading your series.';
+        listEl.textContent = 'Could not load your series.';
     }
 }

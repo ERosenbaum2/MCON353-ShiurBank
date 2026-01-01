@@ -30,6 +30,20 @@
         <h2>Dashboard</h2>
         <p>Welcome to your ShiurBank dashboard. More features coming soon!</p>
 
+        <!-- Database Status Section - Always visible when DB might be down -->
+        <div class="db-status-section" style="margin-top: 1.5rem; padding: 1rem; background: #f8f9fa; border-radius: 8px; border: 1px solid #dee2e6;">
+            <h3 style="margin-top: 0; margin-bottom: 0.75rem; color: #1B4965;">Database Status</h3>
+            <p style="margin: 0.5rem 0;">
+                Status: <span id="db-status-display" style="font-weight: bold;">Checking...</span>
+            </p>
+            <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+                <button id="check-db-status-btn" class="btn-primary" style="flex: 1;">Check Status</button>
+                <button id="start-db-btn" class="btn-primary" style="flex: 1;" disabled>Start Database</button>
+                <button id="stop-db-btn" class="btn-primary" style="flex: 1;" disabled>Stop Database</button>
+            </div>
+            <p id="db-message" style="margin-top: 0.75rem; margin-bottom: 0; font-size: 0.9rem; color: #666;"></p>
+        </div>
+
         <div id="admin-link-container" class="hidden" style="margin-top: 1.5rem; margin-bottom: 1rem;">
             <a href="/admin.html" class="btn-primary" style="text-decoration: none; display: inline-block;">Admin Panel</a>
         </div>
@@ -45,4 +59,3 @@
     </div>
 </main>
 </body>
-</html>
