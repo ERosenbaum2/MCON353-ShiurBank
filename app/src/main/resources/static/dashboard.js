@@ -4,6 +4,16 @@ document.addEventListener('DOMContentLoaded', async function() {
     await checkAdminStatus();
     wireCreateSeriesButton();
     loadMySeries();
+
+    // Set up search functionality
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                performDashboardSearch();
+            }
+        });
+    }
 });
 
 // Check authentication and load user info
@@ -142,4 +152,18 @@ async function loadMySeries() {
         console.error('Error loading my series', error);
         listEl.textContent = 'Could not load your series.';
     }
+}
+
+// Search functionality
+function performDashboardSearch() {
+    const searchInput = document.getElementById('search-input');
+    const query = searchInput.value.trim();
+
+    if (!query) {
+        alert('Please enter a search query');
+        return;
+    }
+
+    // Redirect to search page with query
+    window.location.href = `/search.html?q=${encodeURIComponent(query)}`;
 }

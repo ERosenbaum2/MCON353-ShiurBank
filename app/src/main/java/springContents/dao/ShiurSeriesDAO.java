@@ -58,21 +58,6 @@ public class ShiurSeriesDAO {
         }
     }
 
-    public void addGabbai(Long userId, Long seriesId) {
-        String sql = "INSERT INTO gabbaim (user_id, series_id) VALUES (?, ?) " +
-                "ON DUPLICATE KEY UPDATE user_id = user_id";
-
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setLong(1, userId);
-            stmt.setLong(2, seriesId);
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException("Error adding gabbai", e);
-        }
-    }
-
     public List<Map<String, Object>> getSeriesForGabbai(Long userId) {
         String sql =
                 "SELECT s.series_id, s.description, " +
@@ -211,5 +196,35 @@ public class ShiurSeriesDAO {
         }
 
         return false;
+    }
+
+    public void addGabbai(Long userId, Long seriesId) {
+        String sql = "INSERT INTO gabbaim (user_id, series_id) VALUES (?, ?) " +
+                "ON DUPLICATE KEY UPDATE gabbaim.user_id = gabbaim.user_id";
+
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setLong(1, userId);
+            stmt.setLong(2, seriesId);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Error adding gabbai", e);
+        }
+    }
+
+    public void addParticipant(Long userId, Long seriesId) {
+        String sql = "INSERT INTO shiur_participants (user_id, series_id) VALUES (?, ?) " +
+                "ON DUPLICATE KEY UPDATE shiur_participants.user_id = shiur_participants.user_id";
+
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setLong(1, userId);
+            stmt.setLong(2, seriesId);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Error adding participant", e);
+        }
     }
 }

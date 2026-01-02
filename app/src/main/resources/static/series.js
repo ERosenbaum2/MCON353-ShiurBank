@@ -16,6 +16,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   await checkGabbaiStatus(seriesId);
   await loadRecordings();
 
+  // Check if there's a recording parameter to auto-play
+  const urlParams = new URLSearchParams(window.location.search);
+  const recordingId = urlParams.get('recording');
+  if (recordingId) {
+    // Wait a bit for recordings to load, then find and play the specified recording
+    setTimeout(() => {
+      autoPlayRecording(parseInt(recordingId));
+    }, 500);
+  }
+
   // Set up file input change handler
   document.getElementById('audio-file').addEventListener('change', handleFileSelect);
 
@@ -733,4 +743,26 @@ function initializeAudioListeners() {
       updateProgress();
     }
   });
+}
+
+// ============ AUTO-PLAY RECORDING FROM SEARCH ============
+
+function autoPlayRecording(recordingId) {
+  const item = document.querySelector(`.recording-item[data-recording-id="${recordingId}"]`);
+
+  if (!item) {
+    console.warn(`Recording ${recordingId} not found`);
+    return;
+  }
+
+  const s3FilePath = item.dataset.s3FilePath;
+
+  // Expand the recording
+  item.classList.add('expanded');
+
+  // Scroll to the recording
+  item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  // Play the recording
+  playRecording(recordingId, s3FilePath);
 }

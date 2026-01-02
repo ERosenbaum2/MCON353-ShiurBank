@@ -126,6 +126,8 @@ public class SeriesController {
 
         // Creator is always a gabbai
         shiurSeriesDAO.addGabbai(current.getUserId(), seriesId);
+        // Creator is also automatically a participant
+        shiurSeriesDAO.addParticipant(current.getUserId(), seriesId);
 
         // Optional extra gabbaim: if any invalid, fail the whole creation
         Object extraGabbaimObj = body.get("extraGabbaim");
@@ -163,6 +165,8 @@ public class SeriesController {
                     );
                 }
                 shiurSeriesDAO.addGabbai(extra.getUserId(), seriesId);
+                // Extra gabbaim are also automatically participants
+                shiurSeriesDAO.addParticipant(extra.getUserId(), seriesId);
             }
         }
 
