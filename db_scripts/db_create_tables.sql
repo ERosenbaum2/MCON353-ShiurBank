@@ -121,7 +121,7 @@ CREATE TABLE favorite_shiurim (
     CONSTRAINT uq_favorite UNIQUE (user_id, series_id)
 ) ENGINE=InnoDB;
 
-CREATE TABLE pending_permission (
+CREATE TABLE series_pending_approval (
     pending_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     series_id  BIGINT NOT NULL,
 

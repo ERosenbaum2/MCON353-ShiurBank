@@ -70,7 +70,7 @@ public class ShiurSeriesDAO {
                         "JOIN topics t ON s.topic_id = t.topic_id " +
                         "JOIN rebbeim r ON s.rebbi_id = r.rebbi_id " +
                         "JOIN institutions i ON s.inst_id = i.inst_id " +
-                        "LEFT JOIN pending_permission pp ON s.series_id = pp.series_id " +
+                        "LEFT JOIN series_pending_approval pp ON s.series_id = pp.series_id " +
                         "WHERE g.user_id = ? " +
                         "ORDER BY s.series_id DESC";
 
@@ -247,7 +247,7 @@ public class ShiurSeriesDAO {
                         "JOIN institutions i ON s.inst_id = i.inst_id " +
                         "LEFT JOIN gabbaim g ON s.series_id = g.series_id AND g.user_id = ? " +
                         "LEFT JOIN shiur_participants sp ON s.series_id = sp.series_id AND sp.user_id = ? " +
-                        "LEFT JOIN pending_permission pp ON s.series_id = pp.series_id " +
+                        "LEFT JOIN series_pending_approval pp ON s.series_id = pp.series_id " +
                         "WHERE g.user_id IS NOT NULL OR sp.user_id IS NOT NULL " +
                         "ORDER BY s.series_id DESC";
 
