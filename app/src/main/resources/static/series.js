@@ -110,9 +110,164 @@ async function checkGabbaiStatus(seriesId) {
     const data = await resp.json();
     if (data.isGabbai) {
       document.getElementById('upload-shiur-btn').classList.remove('hidden');
+      // Load pending participants if user is gabbai
+      await loadPendingParticipants(seriesId);
     }
   } catch (error) {
     console.error('Error checking gabbai status', error);
+  }
+}
+
+async function loadPendingParticipants(seriesId) {
+  const section = document.getElementById('pending-participants-section');
+  const loadingDiv = document.getElementById('pending-participants-loading');
+  const errorDiv = document.getElementById('pending-participants-error');
+  const listDiv = document.getElementById('pending-participants-list');
+
+  section.classList.remove('hidden');
+  loadingDiv.classList.remove('hidden');
+  errorDiv.classList.add('hidden');
+  listDiv.innerHTML = '';
+
+  try {
+    const resp = await fetch(`/api/series/${seriesId}/pending-participants`);
+    if (!resp.ok) throw new Error('Failed to load pending participants');
+    const data = await resp.json();
+
+    loadingDiv.classList.add('hidden');
+
+    if (data.success) {
+      if (data.pendingParticipants && data.pendingParticipants.length > 0) {
+        data.pendingParticipants.forEach(participant => {
+          const item = createPendingParticipantItem(participant);
+          listDiv.appendChild(item);
+        });
+      } else {
+        listDiv.innerHTML = '<div class="no-pending-participants">No pending participant requests at this time.</div>';
+      }
+    } else {
+      throw new Error(data.message || 'Failed to load pending participants');
+    }
+  } catch (error) {
+    console.error('Error loading pending participants:', error);
+    loadingDiv.classList.add('hidden');
+    errorDiv.textContent = 'Error loading pending participants: ' + error.message;
+    errorDiv.classList.remove('hidden');
+  }
+}
+
+function createPendingParticipantItem(participant) {
+  const item = document.createElement('div');
+  item.className = 'pending-participant-item';
+  item.dataset.userId = participant.userId;
+
+  const info = document.createElement('div');
+  info.className = 'pending-participant-info';
+
+  const name = document.createElement('div');
+  name.className = 'pending-participant-name';
+  name.textContent = participant.fullName;
+
+  const email = document.createElement('div');
+  email.className = 'pending-participant-email';
+  email.textContent = participant.email;
+
+  info.appendChild(name);
+  info.appendChild(email);
+
+  const actions = document.createElement('div');
+  actions.className = 'pending-participant-actions';
+
+  const approveBtn = document.createElement('button');
+  approveBtn.className = 'btn-approve';
+  approveBtn.textContent = 'Approve';
+  approveBtn.onclick = () => approveParticipant(participant.userId);
+
+  const rejectBtn = document.createElement('button');
+  rejectBtn.className = 'btn-reject';
+  rejectBtn.textContent = 'Reject';
+  rejectBtn.onclick = () => rejectParticipant(participant.userId);
+
+  actions.appendChild(approveBtn);
+  actions.appendChild(rejectBtn);
+
+  item.appendChild(info);
+  item.appendChild(actions);
+
+  return item;
+}
+
+async function approveParticipant(userId) {
+  if (!confirm('Are you sure you want to approve this participant?')) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`/api/series/${currentSeriesId}/approve-participant`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: userId })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      // Remove the item from the list
+      const item = document.querySelector(`.pending-participant-item[data-user-id="${userId}"]`);
+      if (item) {
+        item.remove();
+      }
+
+      // Check if list is now empty
+      const listDiv = document.getElementById('pending-participants-list');
+      if (listDiv.children.length === 0) {
+        listDiv.innerHTML = '<div class="no-pending-participants">No pending participant requests at this time.</div>';
+      }
+
+      alert('Participant approved successfully!');
+    } else {
+      alert('Error: ' + (data.message || 'Failed to approve participant'));
+    }
+  } catch (error) {
+    console.error('Error approving participant:', error);
+    alert('An error occurred while approving the participant. Please try again.');
+  }
+}
+
+async function rejectParticipant(userId) {
+  if (!confirm('Are you sure you want to reject this participant?')) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`/api/series/${currentSeriesId}/reject-participant`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: userId })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      // Remove the item from the list
+      const item = document.querySelector(`.pending-participant-item[data-user-id="${userId}"]`);
+      if (item) {
+        item.remove();
+      }
+
+      // Check if list is now empty
+      const listDiv = document.getElementById('pending-participants-list');
+      if (listDiv.children.length === 0) {
+        listDiv.innerHTML = '<div class="no-pending-participants">No pending participant requests at this time.</div>';
+      }
+
+      alert('Participant rejected.');
+    } else {
+      alert('Error: ' + (data.message || 'Failed to reject participant'));
+    }
+  } catch (error) {
+    console.error('Error rejecting participant:', error);
+    alert('An error occurred while rejecting the participant. Please try again.');
   }
 }
 

@@ -39,7 +39,7 @@ public class SearchDAO {
         sql.append("JOIN rebbeim r ON ss.rebbi_id = r.rebbi_id ");
         sql.append("JOIN topics t ON ss.topic_id = t.topic_id ");
         sql.append("JOIN institutions i ON ss.inst_id = i.inst_id ");
-        sql.append("WHERE (ss.requires_permission = FALSE OR EXISTS(SELECT 1 FROM shiur_participants sp2 WHERE sp2.series_id = ss.series_id AND sp2.user_id = ?)) ");
+        sql.append("WHERE 1=1 ");
 
         List<String> conditions = new ArrayList<>();
         List<String> params = new ArrayList<>();
@@ -100,7 +100,6 @@ public class SearchDAO {
 
             int paramIndex = 1;
             stmt.setLong(paramIndex++, userId);
-            stmt.setLong(paramIndex++, userId);
 
             for (String param : params) {
                 stmt.setString(paramIndex++, param);
@@ -146,7 +145,7 @@ public class SearchDAO {
         sql.append("JOIN rebbeim r ON ss.rebbi_id = r.rebbi_id ");
         sql.append("JOIN topics t ON ss.topic_id = t.topic_id ");
         sql.append("JOIN institutions i ON ss.inst_id = i.inst_id ");
-        sql.append("WHERE (ss.requires_permission = FALSE OR EXISTS(SELECT 1 FROM shiur_participants sp2 WHERE sp2.series_id = ss.series_id AND sp2.user_id = ?)) ");
+        sql.append("WHERE 1=1 ");
 
         List<String> conditions = new ArrayList<>();
         List<String> params = new ArrayList<>();
@@ -209,7 +208,6 @@ public class SearchDAO {
              PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
 
             int paramIndex = 1;
-            stmt.setLong(paramIndex++, userId);
             stmt.setLong(paramIndex++, userId);
 
             for (String param : params) {
