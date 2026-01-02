@@ -76,7 +76,7 @@ public class SeriesController {
         if (user == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        List<Map<String, Object>> series = shiurSeriesDAO.getSeriesForGabbai(user.getUserId());
+        List<Map<String, Object>> series = shiurSeriesDAO.getAllSeriesForUser(user.getUserId());
         return ResponseEntity.ok(series);
     }
 

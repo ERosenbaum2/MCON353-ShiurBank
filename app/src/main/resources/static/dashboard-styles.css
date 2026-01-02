@@ -92,3 +92,29 @@
         padding: 0.2rem 0.5rem;
     }
 }
+
+/* Role badge styling */
+.role-badge {
+    display: inline-block;
+    padding: 0.25rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: white;
+}
+
+.role-badge.role-gabbai {
+    background-color: #1B4965;
+}
+
+.role-badge.role-participant {
+    background-color: #5FA8D3;
+}
+
+/* Responsive Design for role badges */
+@media (max-width: 768px) {
+    .role-badge {
+        font-size: 0.75rem;
+        padding: 0.2rem 0.5rem;
+    }
+}

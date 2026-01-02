@@ -227,4 +227,62 @@ public class ShiurSeriesDAO {
             throw new RuntimeException("Error adding participant", e);
         }
     }
+
+    /**
+     * Get all series where the user is either a gabbai or participant
+     * @param userId The user ID
+     * @return List of series with role information
+     */
+    public List<Map<String, Object>> getAllSeriesForUser(Long userId) {
+        String sql =
+                "SELECT s.series_id, s.description, " +
+                        "       t.name AS topic_name, " +
+                        "       CONCAT(r.title, ' ', r.fname, ' ', r.lname) AS rebbi_name, " +
+                        "       i.name AS inst_name, " +
+                        "       CASE WHEN pp.series_id IS NOT NULL THEN 1 ELSE 0 END AS is_pending, " +
+                        "       CASE WHEN g.user_id IS NOT NULL THEN 1 ELSE 0 END AS is_gabbai " +
+                        "FROM shiur_series s " +
+                        "JOIN topics t ON s.topic_id = t.topic_id " +
+                        "JOIN rebbeim r ON s.rebbi_id = r.rebbi_id " +
+                        "JOIN institutions i ON s.inst_id = i.inst_id " +
+                        "LEFT JOIN gabbaim g ON s.series_id = g.series_id AND g.user_id = ? " +
+                        "LEFT JOIN shiur_participants sp ON s.series_id = sp.series_id AND sp.user_id = ? " +
+                        "LEFT JOIN pending_permission pp ON s.series_id = pp.series_id " +
+                        "WHERE g.user_id IS NOT NULL OR sp.user_id IS NOT NULL " +
+                        "ORDER BY s.series_id DESC";
+
+        List<Map<String, Object>> result = new ArrayList<>();
+
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setLong(1, userId);
+            stmt.setLong(2, userId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> row = new HashMap<>();
+                    long seriesId = rs.getLong("series_id");
+                    String topicName = rs.getString("topic_name");
+                    String rebbiName = rs.getString("rebbi_name");
+                    boolean isPending = rs.getInt("is_pending") == 1;
+                    boolean isGabbai = rs.getInt("is_gabbai") == 1;
+
+                    row.put("seriesId", seriesId);
+                    row.put("description", rs.getString("description"));
+                    row.put("topicName", topicName);
+                    row.put("rebbiName", rebbiName);
+                    row.put("institutionName", rs.getString("inst_name"));
+                    row.put("displayName", topicName + " – " + rebbiName);
+                    row.put("isPending", isPending);
+                    row.put("isGabbai", isGabbai);
+
+                    result.add(row);
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error fetching series for user", e);
+        }
+
+        return result;
+    }
 }
