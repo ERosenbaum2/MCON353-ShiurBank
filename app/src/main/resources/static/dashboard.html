@@ -7,6 +7,7 @@
     <link rel="icon" type="image/png" href="ShiurBank Logo No Words.png">
     <link rel="stylesheet" href="common-styles.css">
     <link rel="stylesheet" href="dashboard-styles.css">
+    <link rel="stylesheet" href="search-styles.css">
     <script src="dashboard.js" defer></script>
 </head>
 <body>
@@ -18,9 +19,13 @@
     </div>
 </header>
 
-<!-- User greeting bar -->
+<!-- User greeting bar with search -->
 <div id="user-greeting" class="hidden">
     <p>Hello <span id="username-display"></span></p>
+    <div class="search-container">
+        <input type="text" id="search-input" class="search-input" placeholder="Search for Series or Shiurim">
+        <button id="search-btn" class="btn-search" onclick="performDashboardSearch()">Search</button>
+    </div>
     <button id="logout-btn" class="btn-primary" onclick="handleLogout()">Logout</button>
 </div>
 
@@ -45,3 +50,4 @@
     </div>
 </main>
 </body>
+</html>

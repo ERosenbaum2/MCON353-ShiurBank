@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Results - ShiurBank</title>
+    <link rel="icon" type="image/png" href="/ShiurBank Logo No Words.png">
+    <link rel="stylesheet" href="/common-styles.css">
+    <link rel="stylesheet" href="/dashboard-styles.css">
+    <link rel="stylesheet" href="/search-styles.css">
+    <script src="/search.js" defer></script>
+</head>
+<body>
+<!-- Header -->
+<header>
+    <div class="header-content">
+        <img src="/ShiurBank Logo No Words.png" alt="ShiurBank Logo" class="header-logo">
+        <h1>ShiurBank</h1>
+    </div>
+</header>
+
+<!-- User greeting bar with search -->
+<div id="user-greeting" class="hidden">
+    <p>Hello <span id="username-display"></span></p>
+    <div class="search-container">
+        <input type="text" id="search-input" class="search-input" placeholder="Search for Series or Shiurim">
+        <button id="search-btn" class="btn-search" onclick="performSearch()">Search</button>
+    </div>
+    <button id="logout-btn" class="btn-primary" onclick="handleLogout()">Logout</button>
+</div>
+
+<!-- Main search results content -->
+<main class="hidden" id="search-main">
+    <div class="dashboard-content">
+        <div class="search-header">
+            <button type="button" class="btn-secondary" onclick="window.location.href='/dashboard.html'">
+                Back to Dashboard
+            </button>
+            <h2 id="results-title">Search Results</h2>
+        </div>
+
+        <!-- Loading indicator -->
+        <div id="search-loading" class="search-loading hidden">
+            <div class="spinner"></div>
+            <p>Searching...</p>
+        </div>
+
+        <!-- No results message -->
+        <div id="no-results" class="no-results hidden">
+            <p>No results found. Try different keywords.</p>
+        </div>
+
+        <!-- Error message -->
+        <div id="search-error" class="search-error hidden"></div>
+
+        <!-- Results container -->
+        <div id="results-container" class="results-container hidden">
+            <div id="results-list"></div>
+
+            <!-- Pagination -->
+            <div id="pagination-container" class="pagination-container hidden"></div>
+        </div>
+    </div>
+</main>
+
+<!-- Apply to Series Modal -->
+<div id="apply-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Apply to Series</h2>
+            <button class="close-modal" onclick="closeApplyModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>Application functionality coming soon!</p>
+            <p>You will be able to request access to private series here.</p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-primary" onclick="closeApplyModal()">Close</button>
+        </div>
+    </div>
+</div>
+</body>
+</html>
