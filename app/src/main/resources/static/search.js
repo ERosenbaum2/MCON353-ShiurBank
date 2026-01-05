@@ -143,7 +143,12 @@ function createResultItem(result) {
     const item = document.createElement('div');
     item.className = 'result-item';
 
-    if (!result.hasAccess) {
+    // Check for pending application status
+    const hasPendingApplication = result.hasPendingApplication === true;
+
+    if (hasPendingApplication) {
+        item.classList.add('pending-application');
+    } else if (!result.hasAccess) {
         item.classList.add('no-access');
     }
 
@@ -200,6 +205,19 @@ function createResultItem(result) {
         viewBtn.textContent = result.type === 'SERIES' ? 'View Series' : 'Play Recording';
         viewBtn.onclick = () => handleResultClick(result);
         actions.appendChild(viewBtn);
+    } else if (hasPendingApplication) {
+        // Show pending badge
+        const pendingBadge = document.createElement('div');
+        pendingBadge.className = 'pending-application-badge';
+        pendingBadge.textContent = 'Application Pending';
+        actions.appendChild(pendingBadge);
+
+        const pendingText = document.createElement('div');
+        pendingText.style.fontSize = '0.85rem';
+        pendingText.style.color = '#856404';
+        pendingText.style.fontStyle = 'italic';
+        pendingText.textContent = 'Awaiting Gabbai approval';
+        actions.appendChild(pendingText);
     } else {
         const noAccessDiv = document.createElement('div');
         noAccessDiv.className = 'no-access-label';

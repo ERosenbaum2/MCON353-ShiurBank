@@ -2,6 +2,7 @@ package springContents.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import springContents.dao.ParticipantApprovalDAO;
 import springContents.dao.SearchDAO;
 import springContents.model.SearchResult;
 
@@ -12,6 +13,7 @@ import java.util.stream.Collectors;
 public class SearchService {
 
     private final SearchDAO searchDAO;
+    private final ParticipantApprovalDAO participantApprovalDAO;
 
     // Common stop words to filter out
     private static final Set<String> STOP_WORDS = new HashSet<>(Arrays.asList(
@@ -22,8 +24,9 @@ public class SearchService {
     ));
 
     @Autowired
-    public SearchService(SearchDAO searchDAO) {
+    public SearchService(SearchDAO searchDAO, ParticipantApprovalDAO participantApprovalDAO) {
         this.searchDAO = searchDAO;
+        this.participantApprovalDAO = participantApprovalDAO;
     }
 
     /**
@@ -52,6 +55,18 @@ public class SearchService {
         List<SearchResult> allResults = new ArrayList<>();
         allResults.addAll(seriesResults);
         allResults.addAll(recordingResults);
+
+        // Check pending applications for series results
+        for (SearchResult result : allResults) {
+            if ("SERIES".equals(result.getType())) {
+                boolean hasPending = participantApprovalDAO.hasPendingApplication(userId, result.getId());
+                result.setHasPendingApplication(hasPending);
+            } else if ("RECORDING".equals(result.getType())) {
+                // For recordings, check if user has pending application to the parent series
+                boolean hasPending = participantApprovalDAO.hasPendingApplication(userId, result.getSeriesId());
+                result.setHasPendingApplication(hasPending);
+            }
+        }
 
         // Calculate relevance scores
         for (SearchResult result : allResults) {

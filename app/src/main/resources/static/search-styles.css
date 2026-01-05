@@ -136,6 +136,29 @@
     opacity: 0.9;
 }
 
+/* Pending application styling */
+.result-item.pending-application {
+    background-color: #fff3cd;
+    border-color: #ffc107;
+    opacity: 0.9;
+}
+
+.result-item.pending-application:hover {
+    background-color: #fff3cd;
+    box-shadow: 0 2px 6px rgba(255, 193, 7, 0.3);
+}
+
+.pending-application-badge {
+    display: inline-block;
+    background-color: #ff9800;
+    color: white;
+    padding: 0.35rem 0.7rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-right: 0.5rem;
+}
+
 /* Type badge */
 .type-badge {
     padding: 0.4rem 0.75rem;
