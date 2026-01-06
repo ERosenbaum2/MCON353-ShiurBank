@@ -2,6 +2,11 @@ let currentSeriesId = null;
 let currentRecordingId = null;
 let mainAudio = null;
 let animationFrameId = null;
+let currentUserId = null;
+let pendingRemoveUserId = null;
+let pendingRemoveUserName = null;
+let pendingAddGabbaiUserId = null;
+let pendingAddGabbaiUserName = null;
 const SKIP_INTERVAL = 15; // 15 seconds
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -55,6 +60,7 @@ async function checkAuthAndShowPage() {
       window.location.href = '/index.html';
       return;
     }
+    currentUserId = data.userId;
     document.getElementById('username-display').textContent = data.username;
     document.getElementById('user-greeting').classList.remove('hidden');
     document.getElementById('series-main').classList.remove('hidden');
@@ -110,13 +116,192 @@ async function checkGabbaiStatus(seriesId) {
     const data = await resp.json();
     if (data.isGabbai) {
       document.getElementById('upload-shiur-btn').classList.remove('hidden');
-      // Load pending participants if user is gabbai
+      // Load participants and pending participants if user is gabbai
+      await loadParticipants(seriesId);
       await loadPendingParticipants(seriesId);
     }
   } catch (error) {
     console.error('Error checking gabbai status', error);
   }
 }
+
+// ============ PARTICIPANTS MANAGEMENT ============
+
+async function loadParticipants(seriesId) {
+  const section = document.getElementById('participants-section');
+  const loadingDiv = document.getElementById('participants-loading');
+  const errorDiv = document.getElementById('participants-error');
+  const listDiv = document.getElementById('participants-list');
+
+  section.classList.remove('hidden');
+  loadingDiv.classList.remove('hidden');
+  errorDiv.classList.add('hidden');
+  listDiv.innerHTML = '';
+
+  try {
+    const resp = await fetch(`/api/series/${seriesId}/participants`);
+    if (!resp.ok) throw new Error('Failed to load participants');
+    const data = await resp.json();
+
+    loadingDiv.classList.add('hidden');
+
+    if (data.success) {
+      if (data.participants && data.participants.length > 0) {
+        data.participants.forEach(participant => {
+          const item = createParticipantItem(participant);
+          listDiv.appendChild(item);
+        });
+      } else {
+        listDiv.innerHTML = '<div class="no-participants">No participants in this series yet.</div>';
+      }
+    } else {
+      throw new Error(data.message || 'Failed to load participants');
+    }
+  } catch (error) {
+    console.error('Error loading participants:', error);
+    loadingDiv.classList.add('hidden');
+    errorDiv.textContent = 'Error loading participants: ' + error.message;
+    errorDiv.classList.remove('hidden');
+  }
+}
+
+function createParticipantItem(participant) {
+  const item = document.createElement('div');
+  item.className = 'participant-item';
+  item.dataset.userId = participant.userId;
+
+  const info = document.createElement('div');
+  info.className = 'participant-info';
+
+  const name = document.createElement('div');
+  name.className = 'participant-name';
+  name.textContent = participant.fullName;
+
+  const email = document.createElement('div');
+  email.className = 'participant-email';
+  email.textContent = participant.email;
+
+  info.appendChild(name);
+  info.appendChild(email);
+
+  const actions = document.createElement('div');
+  actions.className = 'participant-actions';
+
+  // Only show "Add as Gabbai" button if user is not already a gabbai
+  if (!participant.isGabbai) {
+    const addGabbaiBtn = document.createElement('button');
+    addGabbaiBtn.className = 'btn-add-gabbai';
+    addGabbaiBtn.textContent = 'Add as Additional Gabbai';
+    addGabbaiBtn.onclick = () => openAddGabbaiModal(participant.userId, participant.fullName);
+    actions.appendChild(addGabbaiBtn);
+  }
+
+  // Don't allow removing yourself
+  if (participant.userId !== currentUserId) {
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'btn-remove-participant';
+    removeBtn.textContent = 'Remove Participant';
+    removeBtn.onclick = () => openRemoveParticipantModal(participant.userId, participant.fullName);
+    actions.appendChild(removeBtn);
+  }
+
+  item.appendChild(info);
+  item.appendChild(actions);
+
+  return item;
+}
+
+function openRemoveParticipantModal(userId, fullName) {
+  pendingRemoveUserId = userId;
+  pendingRemoveUserName = fullName;
+  document.getElementById('remove-participant-message').textContent =
+    `Are you sure you want to remove ${fullName} from this series? This will remove all their associations with this series.`;
+  document.getElementById('remove-participant-modal').classList.add('active');
+}
+
+function closeRemoveParticipantModal() {
+  document.getElementById('remove-participant-modal').classList.remove('active');
+  pendingRemoveUserId = null;
+  pendingRemoveUserName = null;
+}
+
+async function confirmRemoveParticipant() {
+  if (!pendingRemoveUserId) return;
+
+  try {
+    const response = await fetch(`/api/series/${currentSeriesId}/remove-participant`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: pendingRemoveUserId })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      // Remove the item from the list
+      const item = document.querySelector(`.participant-item[data-user-id="${pendingRemoveUserId}"]`);
+      if (item) {
+        item.remove();
+      }
+
+      // Check if list is now empty
+      const listDiv = document.getElementById('participants-list');
+      if (listDiv.children.length === 0) {
+        listDiv.innerHTML = '<div class="no-participants">No participants in this series yet.</div>';
+      }
+
+      closeRemoveParticipantModal();
+      alert(`${pendingRemoveUserName} has been removed from the series.`);
+    } else {
+      alert('Error: ' + (data.message || 'Failed to remove participant'));
+    }
+  } catch (error) {
+    console.error('Error removing participant:', error);
+    alert('An error occurred while removing the participant. Please try again.');
+  }
+}
+
+function openAddGabbaiModal(userId, fullName) {
+  pendingAddGabbaiUserId = userId;
+  pendingAddGabbaiUserName = fullName;
+  document.getElementById('add-gabbai-message').textContent =
+    `Are you sure you want to add ${fullName} as an additional gabbai for this series?`;
+  document.getElementById('add-gabbai-modal').classList.add('active');
+}
+
+function closeAddGabbaiModal() {
+  document.getElementById('add-gabbai-modal').classList.remove('active');
+  pendingAddGabbaiUserId = null;
+  pendingAddGabbaiUserName = null;
+}
+
+async function confirmAddGabbai() {
+  if (!pendingAddGabbaiUserId) return;
+
+  try {
+    const response = await fetch(`/api/series/${currentSeriesId}/add-gabbai`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: pendingAddGabbaiUserId })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      closeAddGabbaiModal();
+      alert(`${pendingAddGabbaiUserName} has been added as a gabbai for this series.`);
+      // Reload participants to update the UI (hide "Add as Gabbai" button)
+      await loadParticipants(currentSeriesId);
+    } else {
+      alert('Error: ' + (data.message || 'Failed to add gabbai'));
+    }
+  } catch (error) {
+    console.error('Error adding gabbai:', error);
+    alert('An error occurred while adding the gabbai. Please try again.');
+  }
+}
+
+// ============ PENDING PARTICIPANTS MANAGEMENT ============
 
 async function loadPendingParticipants(seriesId) {
   const section = document.getElementById('pending-participants-section');
@@ -212,19 +397,22 @@ async function approveParticipant(userId) {
     const data = await response.json();
 
     if (data.success) {
-      // Remove the item from the list
+      // Remove the item from the pending list
       const item = document.querySelector(`.pending-participant-item[data-user-id="${userId}"]`);
       if (item) {
         item.remove();
       }
 
-      // Check if list is now empty
+      // Check if pending list is now empty
       const listDiv = document.getElementById('pending-participants-list');
       if (listDiv.children.length === 0) {
         listDiv.innerHTML = '<div class="no-pending-participants">No pending participant requests at this time.</div>';
       }
 
       alert('Participant approved successfully!');
+
+      // Reload participants list to show the newly approved participant
+      await loadParticipants(currentSeriesId);
     } else {
       alert('Error: ' + (data.message || 'Failed to approve participant'));
     }
@@ -270,6 +458,8 @@ async function rejectParticipant(userId) {
     alert('An error occurred while rejecting the participant. Please try again.');
   }
 }
+
+// ============ UPLOAD MODAL ============
 
 function openUploadModal() {
   document.getElementById('upload-modal').classList.add('active');
