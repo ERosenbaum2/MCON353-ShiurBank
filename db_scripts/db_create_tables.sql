@@ -121,7 +121,7 @@ CREATE TABLE favorite_shiurim (
     CONSTRAINT uq_favorite UNIQUE (user_id, series_id)
 ) ENGINE=InnoDB;
 
-CREATE TABLE pending_permission (
+CREATE TABLE series_pending_approval (
     pending_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     series_id  BIGINT NOT NULL,
 
@@ -143,4 +143,23 @@ CREATE TABLE admins (
         REFERENCES users(user_id)
         ON DELETE CASCADE
         ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE users_pending_approval_to_series (
+    pending_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id    BIGINT NOT NULL,
+    series_id  BIGINT NOT NULL,
+
+    CONSTRAINT uq_user_series_pending
+        UNIQUE (user_id, series_id),
+
+    CONSTRAINT fk_pending_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(user_id)
+        ON DELETE RESTRICT,
+
+    CONSTRAINT fk_pending_series_for_user
+        FOREIGN KEY (series_id)
+        REFERENCES shiur_series(series_id)
+        ON DELETE RESTRICT
 ) ENGINE=InnoDB;

@@ -57,6 +57,24 @@
       <div id="recordings-error" class="error hidden"></div>
       <div id="recordings-list"></div>
     </div>
+
+    <hr style="margin:2rem 0;">
+
+    <!-- Participants Section (only visible for gabbaim) -->
+    <div id="participants-section" class="participants-section hidden">
+      <h3>Series Participants</h3>
+      <div id="participants-loading" class="loading hidden">Loading participants...</div>
+      <div id="participants-error" class="error hidden"></div>
+      <div id="participants-list"></div>
+    </div>
+
+    <!-- Pending Participants Section (only visible for gabbaim) -->
+    <div id="pending-participants-section" class="pending-section hidden">
+      <h3>Pending Participants</h3>
+      <div id="pending-participants-loading" class="loading hidden">Loading pending participants...</div>
+      <div id="pending-participants-error" class="error hidden"></div>
+      <div id="pending-participants-list"></div>
+    </div>
   </div>
 </main>
 
@@ -125,6 +143,44 @@
     <div class="modal-footer">
       <button type="button" class="btn-cancel" onclick="closeUploadModal()">Cancel</button>
       <button type="button" id="submit-upload-btn" class="btn-upload" onclick="submitUpload()">Upload Shiur</button>
+    </div>
+  </div>
+</div>
+
+<!-- Remove Participant Confirmation Modal -->
+<div id="remove-participant-modal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Remove Participant</h2>
+      <button class="close-modal" onclick="closeRemoveParticipantModal()">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <p id="remove-participant-message"></p>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn-cancel" onclick="closeRemoveParticipantModal()">Cancel</button>
+      <button type="button" class="btn-confirm danger" onclick="confirmRemoveParticipant()">Remove Participant</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Gabbai Confirmation Modal -->
+<div id="add-gabbai-modal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Add Additional Gabbai</h2>
+      <button class="close-modal" onclick="closeAddGabbaiModal()">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <p id="add-gabbai-message"></p>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn-cancel" onclick="closeAddGabbaiModal()">Cancel</button>
+      <button type="button" class="btn-confirm" onclick="confirmAddGabbai()">Add as Gabbai</button>
     </div>
   </div>
 </div>

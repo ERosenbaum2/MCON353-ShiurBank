@@ -76,7 +76,7 @@ public class SeriesController {
         if (user == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        List<Map<String, Object>> series = shiurSeriesDAO.getSeriesForGabbai(user.getUserId());
+        List<Map<String, Object>> series = shiurSeriesDAO.getAllSeriesForUser(user.getUserId());
         return ResponseEntity.ok(series);
     }
 
@@ -189,7 +189,7 @@ public class SeriesController {
                     );
                 } catch (Exception e) {
                     // Log error but don't fail the series creation
-                    // The series is already created and added to pending_permission
+                    // The series is already created and added to series_pending_approval
                     // SNS notification failure shouldn't block the operation
                     logger.error("Failed to send SNS notification for series {}: {}", seriesId, e.getMessage(), e);
                 }

@@ -12,6 +12,7 @@ public class SearchResult {
     private Long seriesId; // For recordings - links to parent series
     private boolean hasAccess;
     private int relevanceScore;
+    private boolean hasPendingApplication;
 
     public SearchResult() {
     }
@@ -103,5 +104,13 @@ public class SearchResult {
 
     public void setRelevanceScore(int relevanceScore) {
         this.relevanceScore = relevanceScore;
+    }
+
+    public boolean isHasPendingApplication() {
+        return hasPendingApplication;
+    }
+
+    public void setHasPendingApplication(boolean hasPendingApplication) {
+        this.hasPendingApplication = hasPendingApplication;
     }
 }

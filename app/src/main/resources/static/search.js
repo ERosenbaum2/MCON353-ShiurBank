@@ -2,6 +2,7 @@ let currentQuery = '';
 let currentPage = 0;
 const PAGE_SIZE = 20;
 let totalPages = 0;
+let currentApplicationSeriesId = null;
 
 document.addEventListener('DOMContentLoaded', async function() {
     await checkAuthAndShowPage();
@@ -142,7 +143,12 @@ function createResultItem(result) {
     const item = document.createElement('div');
     item.className = 'result-item';
 
-    if (!result.hasAccess) {
+    // Check for pending application status
+    const hasPendingApplication = result.hasPendingApplication === true;
+
+    if (hasPendingApplication) {
+        item.classList.add('pending-application');
+    } else if (!result.hasAccess) {
         item.classList.add('no-access');
     }
 
@@ -199,6 +205,19 @@ function createResultItem(result) {
         viewBtn.textContent = result.type === 'SERIES' ? 'View Series' : 'Play Recording';
         viewBtn.onclick = () => handleResultClick(result);
         actions.appendChild(viewBtn);
+    } else if (hasPendingApplication) {
+        // Show pending badge
+        const pendingBadge = document.createElement('div');
+        pendingBadge.className = 'pending-application-badge';
+        pendingBadge.textContent = 'Application Pending';
+        actions.appendChild(pendingBadge);
+
+        const pendingText = document.createElement('div');
+        pendingText.style.fontSize = '0.85rem';
+        pendingText.style.color = '#856404';
+        pendingText.style.fontStyle = 'italic';
+        pendingText.textContent = 'Awaiting Gabbai approval';
+        actions.appendChild(pendingText);
     } else {
         const noAccessDiv = document.createElement('div');
         noAccessDiv.className = 'no-access-label';
@@ -227,6 +246,139 @@ function handleResultClick(result) {
         // Navigate to series page with recording ID
         window.location.href = `/series/${result.seriesId}?recording=${result.id}`;
     }
+}
+
+async function openApplyModal(result) {
+    // Determine the series ID
+    const seriesId = result.type === 'SERIES' ? result.id : result.seriesId;
+    currentApplicationSeriesId = seriesId;
+
+    // Show loading state in modal
+    const modal = document.getElementById('apply-modal');
+    const modalBody = modal.querySelector('.modal-body');
+    modalBody.innerHTML = '<p style="text-align: center; padding: 2rem;">Loading series information...</p>';
+    modal.classList.add('active');
+
+    try {
+        const response = await fetch(`/api/series/${seriesId}/application-info`);
+        const data = await response.json();
+
+        if (!data.success) {
+            modalBody.innerHTML = `<p style="color: #e74c3c;">${data.message || 'Error loading series information.'}</p>`;
+            return;
+        }
+
+        // Check if already a participant
+        if (data.isParticipant) {
+            modalBody.innerHTML = '<p style="color: #27ae60; font-weight: 600;">You are already a participant in this series.</p>';
+            updateModalFooter(false, true);
+            return;
+        }
+
+        // Check if has pending application
+        if (data.hasPendingApplication) {
+            modalBody.innerHTML = '<p style="color: #f39c12; font-weight: 600;">You already have a pending application for this series. Please wait for the Gabbai to review your request.</p>';
+            updateModalFooter(false, true);
+            return;
+        }
+
+        // Build modal content
+        const seriesInfo = data.seriesInfo;
+        const gabbaim = data.gabbaim;
+
+        let html = '<div style="margin-bottom: 1.5rem;">';
+        html += `<h3 style="color: #1B4965; margin-bottom: 1rem;">Series Information</h3>`;
+        html += `<p><strong>Rebbi:</strong> ${seriesInfo.rebbiName}</p>`;
+        html += `<p><strong>Topic:</strong> ${seriesInfo.topicName}</p>`;
+        html += `<p><strong>Institution:</strong> ${seriesInfo.institutionName}</p>`;
+        if (seriesInfo.description) {
+            html += `<p><strong>Description:</strong> ${seriesInfo.description}</p>`;
+        }
+        html += '</div>';
+
+        if (gabbaim && gabbaim.length > 0) {
+            html += '<div style="margin-bottom: 1.5rem; padding: 1rem; background-color: #f8f9fa; border-radius: 4px;">';
+            html += `<h3 style="color: #1B4965; margin-bottom: 1rem;">Gabbai${gabbaim.length > 1 ? 'im' : ''}</h3>`;
+            gabbaim.forEach(gabbai => {
+                html += `<p><strong>${gabbai.fullName}</strong><br>Email: <a href="mailto:${gabbai.email}">${gabbai.email}</a></p>`;
+            });
+            html += '</div>';
+        }
+
+        html += '<p style="font-size: 1.05rem; margin-top: 1rem;">Would you like to apply to join this series?</p>';
+
+        modalBody.innerHTML = html;
+        updateModalFooter(true, false);
+
+    } catch (error) {
+        console.error('Error loading application info:', error);
+        modalBody.innerHTML = '<p style="color: #e74c3c;">An error occurred while loading series information. Please try again.</p>';
+        updateModalFooter(false, true);
+    }
+}
+
+function updateModalFooter(showApplyButton, showCloseOnly) {
+    const modalFooter = document.querySelector('#apply-modal .modal-footer');
+
+    if (showCloseOnly) {
+        modalFooter.innerHTML = '<button type="button" class="btn-primary" onclick="closeApplyModal()">Close</button>';
+    } else if (showApplyButton) {
+        modalFooter.innerHTML = `
+            <button type="button" class="btn-secondary" onclick="closeApplyModal()">Cancel</button>
+            <button type="button" class="btn-primary" onclick="submitApplication()">Apply</button>
+        `;
+    } else {
+        modalFooter.innerHTML = '<button type="button" class="btn-primary" onclick="closeApplyModal()">Close</button>';
+    }
+}
+
+async function submitApplication() {
+    if (!currentApplicationSeriesId) {
+        alert('Error: No series selected');
+        return;
+    }
+
+    const modal = document.getElementById('apply-modal');
+    const modalBody = modal.querySelector('.modal-body');
+    modalBody.innerHTML = '<p style="text-align: center; padding: 2rem;">Submitting application...</p>';
+    updateModalFooter(false, false);
+
+    try {
+        const response = await fetch(`/api/series/${currentApplicationSeriesId}/apply`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            if (data.autoApproved) {
+                modalBody.innerHTML = '<p style="color: #27ae60; font-weight: 600; text-align: center; padding: 2rem;">✓ You have been successfully added to the series!</p>';
+            } else {
+                modalBody.innerHTML = '<p style="color: #27ae60; font-weight: 600; text-align: center; padding: 2rem;">✓ Your application has been submitted successfully! The Gabbai will review your request.</p>';
+            }
+            updateModalFooter(false, true);
+
+            // Refresh search results after a delay
+            setTimeout(() => {
+                closeApplyModal();
+                performSearch(currentPage);
+            }, 2000);
+        } else {
+            modalBody.innerHTML = `<p style="color: #e74c3c; text-align: center; padding: 2rem;">${data.message || 'Failed to submit application.'}</p>`;
+            updateModalFooter(false, true);
+        }
+
+    } catch (error) {
+        console.error('Error submitting application:', error);
+        modalBody.innerHTML = '<p style="color: #e74c3c; text-align: center; padding: 2rem;">An error occurred while submitting your application. Please try again.</p>';
+        updateModalFooter(false, true);
+    }
+}
+
+function closeApplyModal() {
+    document.getElementById('apply-modal').classList.remove('active');
+    currentApplicationSeriesId = null;
 }
 
 function displayPagination(currentPage, totalPages, totalResults) {
@@ -330,14 +482,6 @@ function formatDate(date) {
     const day = date.getDate();
     const year = date.getFullYear();
     return `${month}/${day}/${year}`;
-}
-
-function openApplyModal(result) {
-    document.getElementById('apply-modal').classList.add('active');
-}
-
-function closeApplyModal() {
-    document.getElementById('apply-modal').classList.remove('active');
 }
 
 function showLoading() {
