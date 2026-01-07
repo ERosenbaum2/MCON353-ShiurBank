@@ -436,3 +436,30 @@
 .hidden-section {
     display: none;
 }
+
+/* Database Control - Disabled Button Styles */
+#db-control-start-btn:disabled,
+#db-control-stop-btn:disabled,
+#db-control-check-btn:disabled {
+    background-color: #95a5a6 !important;
+    cursor: not-allowed !important;
+    opacity: 0.6;
+}
+
+#db-control-start-btn:disabled:hover,
+#db-control-stop-btn:disabled:hover,
+#db-control-check-btn:disabled:hover {
+    background-color: #95a5a6 !important;
+    transform: none !important;
+}
+
+/* Ensure success/danger colors are overridden when disabled */
+.btn-success:disabled {
+    background-color: #95a5a6 !important;
+    border-color: #95a5a6 !important;
+}
+
+.btn-danger:disabled {
+    background-color: #95a5a6 !important;
+    border-color: #95a5a6 !important;
+}

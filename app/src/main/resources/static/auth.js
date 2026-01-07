@@ -182,53 +182,61 @@ async function loadDbControlStatus() {
     const stopBtn = document.getElementById('db-control-stop-btn');
     const messageEl = document.getElementById('db-control-message');
 
-    if (!statusDisplay) return;
+    if (!statusDisplay || !startBtn || !stopBtn) return;
 
     try {
         statusDisplay.textContent = 'Checking...';
         messageEl.textContent = '';
-        
+
         const response = await fetch('/api/admin/rds/status');
-        
+
         if (!response.ok) {
-            statusDisplay.textContent = 'Unknown';
-            messageEl.textContent = 'Cannot check status. Database might be down.';
-            startBtn.disabled = false;
+            statusDisplay.textContent = 'Error';
+            startBtn.disabled = true;
             stopBtn.disabled = true;
+            messageEl.textContent = 'Error checking status.';
             return;
         }
 
         const data = await response.json();
         if (data.success) {
-            const status = data.status || 'unknown';
+            const status = (data.status || 'unknown').toLowerCase();
             statusDisplay.textContent = status;
-            
-            if (status.toLowerCase() === 'stopped') {
+
+            // Enable/disable buttons based on status
+            if (status === 'stopped') {
+                // Database is stopped - enable start, disable stop
                 startBtn.disabled = false;
                 stopBtn.disabled = true;
                 messageEl.textContent = 'Database is stopped.';
-            } else if (status.toLowerCase() === 'available' || status.toLowerCase() === 'running') {
+            } else if (status === 'available' || status === 'running') {
+                // Database is running - disable start, enable stop
                 startBtn.disabled = true;
                 stopBtn.disabled = false;
                 messageEl.textContent = 'Database is running.';
-            } else if (status.toLowerCase() === 'starting') {
+            } else if (status === 'starting') {
+                // Database is starting - disable both
                 startBtn.disabled = true;
                 stopBtn.disabled = true;
                 messageEl.textContent = 'Database is starting. Please wait 2-5 minutes...';
-            } else if (status.toLowerCase() === 'stopping') {
+            } else if (status === 'stopping') {
+                // Database is stopping - disable both
                 startBtn.disabled = true;
                 stopBtn.disabled = true;
                 messageEl.textContent = 'Database is stopping. Please wait...';
             } else {
-                startBtn.disabled = false;
-                stopBtn.disabled = false;
+                // Unknown status - disable both for safety
+                startBtn.disabled = true;
+                stopBtn.disabled = true;
                 messageEl.textContent = `Status: ${status}`;
             }
+
+            console.log('DB Status:', status, 'Start disabled:', startBtn.disabled, 'Stop disabled:', stopBtn.disabled);
         } else {
             statusDisplay.textContent = 'Error';
-            messageEl.textContent = 'Could not check status.';
-            startBtn.disabled = false;
+            startBtn.disabled = true;
             stopBtn.disabled = true;
+            messageEl.textContent = 'Could not check status.';
         }
     } catch (error) {
         console.error('Error loading database status:', error);
