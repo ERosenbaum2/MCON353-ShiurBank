@@ -1,5 +1,9 @@
 // Modal functions
 function openModal() {
+    if (!isDatabaseAvailable) {
+        alert('The database is currently offline. Please wait for it to start or use the database control button to start it.');
+        return;
+    }
     document.getElementById('modal-overlay').classList.remove('hidden');
 }
 
@@ -16,7 +20,6 @@ function closeModal() {
     inputs.forEach(input => input.classList.remove('error'));
 }
 
-// Close modal when clicking outside
 document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('modal-overlay').addEventListener('click', function(e) {
         if (e.target === this) {
@@ -44,13 +47,18 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('create-content').style.display = 'none';
 
     // Initialize on page load
-    loadInstitutions();
+    checkHomepageDatabaseStatus(); // Check DB status first
     checkIfAlreadyLoggedIn();
     wireDbControlModal();
+
+    // Poll database status every 10 seconds to auto-enable button when DB comes online
+    setInterval(checkHomepageDatabaseStatus, 10000);
 });
 
 // Database Control Modal Functions
 let dbControlPasswordVerified = false;
+let isDatabaseAvailable = false;
+let institutionsLoaded = false;
 
 function openDbControlModal() {
     const modal = document.getElementById('db-control-modal');
@@ -133,7 +141,7 @@ async function verifyDbControlPassword() {
     }
     
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Verifying...';
+    submitBtn.textContent = 'Verify';
     errorEl.style.display = 'none';
 
     try {
@@ -203,19 +211,33 @@ async function loadDbControlStatus() {
             const status = (data.status || 'unknown').toLowerCase();
             statusDisplay.textContent = status;
 
+            // Reset button text in case it was changed
+            startBtn.textContent = 'Start';
+            stopBtn.textContent = 'Stop';
+
             // Enable/disable buttons based on status
             if (status === 'stopped') {
                 // Database is stopped - enable start, disable stop
                 startBtn.disabled = false;
                 stopBtn.disabled = true;
                 messageEl.textContent = 'Database is stopped.';
-            } else if (status === 'available' || status === 'running') {
+            } else if (status === 'available') {
                 // Database is running - disable start, enable stop
                 startBtn.disabled = true;
                 stopBtn.disabled = false;
                 messageEl.textContent = 'Database is running.';
-            } else if (status === 'starting') {
-                // Database is starting - disable both
+            } else if (status === 'starting' ||
+                       status === 'configuring-enhanced-monitoring' ||
+                       status === 'configuring-iam-database-auth' ||
+                       status === 'configuring-log-exports' ||
+                       status === 'backing-up' ||
+                       status === 'creating' ||
+                       status === 'modifying' ||
+                       status === 'upgrading' ||
+                       status === 'rebooting' ||
+                       status === 'maintenance' ||
+                       status === 'storage-optimization') {
+                // Database is starting or in transition - disable both
                 startBtn.disabled = true;
                 stopBtn.disabled = true;
                 messageEl.textContent = 'Database is starting. Please wait 2-5 minutes...';
@@ -230,8 +252,6 @@ async function loadDbControlStatus() {
                 stopBtn.disabled = true;
                 messageEl.textContent = `Status: ${status}`;
             }
-
-            console.log('DB Status:', status, 'Start disabled:', startBtn.disabled, 'Stop disabled:', stopBtn.disabled);
         } else {
             statusDisplay.textContent = 'Error';
             startBtn.disabled = true;
@@ -276,6 +296,8 @@ async function startDbControlDatabase() {
         if (data.success) {
             messageEl.textContent = 'Database start initiated! Please wait 2-5 minutes.';
             setTimeout(loadDbControlStatus, 2000);
+            // Also check homepage status
+            setTimeout(checkHomepageDatabaseStatus, 2000);
         } else {
             messageEl.textContent = 'Error: ' + (data.message || 'Failed to start database');
             startBtn.disabled = false;
@@ -319,6 +341,8 @@ async function stopDbControlDatabase() {
         if (data.success) {
             messageEl.textContent = 'Database stop initiated.';
             setTimeout(loadDbControlStatus, 2000);
+            // Also check homepage status
+            setTimeout(checkHomepageDatabaseStatus, 2000);
         } else {
             messageEl.textContent = 'Error: ' + (data.message || 'Failed to stop database');
             stopBtn.disabled = false;
@@ -386,11 +410,15 @@ async function loadInstitutions() {
                 wrapper.appendChild(label);
                 container.appendChild(wrapper);
             });
+            institutionsLoaded = true;
         } else {
             console.error('Failed to load institutions:', response.status);
+            // Don't mark as loaded if it failed
+            institutionsLoaded = false;
         }
     } catch (error) {
         console.error('Error loading institutions:', error);
+        institutionsLoaded = false;
     }
 }
 
@@ -517,5 +545,83 @@ function displayErrors(errors) {
         if (input) {
             input.classList.add('error');
         }
+    }
+}
+
+async function checkHomepageDatabaseStatus() {
+    const loginBtn = document.getElementById('login-btn');
+
+    if (!loginBtn) return;
+
+    try {
+        const response = await fetch('/api/admin/rds/status');
+
+        if (!response.ok) {
+            // Database check failed
+            isDatabaseAvailable = false;
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Database Offline';
+            loginBtn.classList.add('db-offline');
+            return;
+        }
+
+        const data = await response.json();
+        if (data.success) {
+            const status = (data.status || 'unknown').toLowerCase();
+
+            // Check if database is fully available
+            if (status === 'available') {
+                // Database is fully available - enable button and load institutions
+                isDatabaseAvailable = true;
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Login / Create Account';
+                loginBtn.classList.remove('db-offline');
+
+                // Load institutions only once when database becomes available
+                if (!institutionsLoaded) {
+                    await loadInstitutions();
+                    institutionsLoaded = true;
+                }
+            } else if (status === 'starting' ||
+                       status === 'configuring-enhanced-monitoring' ||
+                       status === 'configuring-iam-database-auth' ||
+                       status === 'configuring-log-exports' ||
+                       status === 'backing-up' ||
+                       status === 'creating' ||
+                       status === 'modifying' ||
+                       status === 'upgrading' ||
+                       status === 'rebooting' ||
+                       status === 'maintenance' ||
+                       status === 'storage-optimization') {
+                // Database is in transition state
+                isDatabaseAvailable = false;
+                loginBtn.disabled = true;
+                loginBtn.textContent = 'Database Starting...';
+                loginBtn.classList.add('db-offline');
+            } else if (status === 'stopped' || status === 'stopping') {
+                // Database is stopped or stopping
+                isDatabaseAvailable = false;
+                loginBtn.disabled = true;
+                loginBtn.textContent = 'Database Offline';
+                loginBtn.classList.add('db-offline');
+            } else {
+                // Any other status - disable for safety
+                isDatabaseAvailable = false;
+                loginBtn.disabled = true;
+                loginBtn.textContent = 'Database Unavailable';
+                loginBtn.classList.add('db-offline');
+            }
+        } else {
+            isDatabaseAvailable = false;
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Database Offline';
+            loginBtn.classList.add('db-offline');
+        }
+    } catch (error) {
+        console.error('Error checking homepage database status:', error);
+        isDatabaseAvailable = false;
+        loginBtn.disabled = true;
+        loginBtn.textContent = 'Database Offline';
+        loginBtn.classList.add('db-offline');
     }
 }
