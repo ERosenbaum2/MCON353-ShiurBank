@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -124,6 +125,17 @@ public class SeriesController {
             throw new RuntimeException("Failed to create S3 bucket for series: " + e.getMessage(), e);
         }
 
+        // Create SNS topic for the series
+        try {
+            String topicArn = snsService.createSeriesTopic(seriesId);
+            shiurSeriesDAO.updateSeriesTopicArn(seriesId, topicArn);
+            logger.info("Created and associated SNS topic for series {}: {}", seriesId, topicArn);
+        } catch (Exception e) {
+            logger.error("Failed to create SNS topic for series {}: {}", seriesId, e.getMessage(), e);
+            // Re-throw to trigger transaction rollback
+            throw new RuntimeException("Failed to create SNS topic for series: " + e.getMessage(), e);
+        }
+
         // Creator is always a gabbai
         shiurSeriesDAO.addGabbai(current.getUserId(), seriesId);
         // Creator is also automatically a participant
@@ -229,6 +241,67 @@ public class SeriesController {
         Map<String, Boolean> response = new HashMap<>();
         response.put("isGabbai", isGabbai);
         return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/series/{id}")
+    @Transactional
+    public ResponseEntity<Map<String, Object>> deleteSeries(@PathVariable("id") Long id,
+                                                            HttpSession session) {
+        Map<String, Object> resp = new HashMap<>();
+        User user = (User) session.getAttribute("user");
+        if (user == null) {
+            resp.put("success", false);
+            resp.put("message", "Not logged in.");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(resp);
+        }
+
+        // Verify user is a gabbai for this series
+        if (!shiurSeriesDAO.isGabbaiForSeries(user.getUserId(), id)) {
+            resp.put("success", false);
+            resp.put("message", "You do not have permission to delete this series.");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(resp);
+        }
+
+        try {
+            // Get the topic ARN before deleting the series
+            String topicArn = shiurSeriesDAO.getSeriesTopicArn(id);
+
+            // Delete the series (this will CASCADE delete related records)
+            shiurSeriesDAO.deleteSeries(id);
+            logger.info("Deleted series {} by user {}", id, user.getUserId());
+
+            // Delete the SNS topic if it exists
+            if (topicArn != null && !topicArn.trim().isEmpty()) {
+                try {
+                    snsService.deleteTopic(topicArn);
+                    logger.info("Deleted SNS topic for series {}: {}", id, topicArn);
+                } catch (Exception e) {
+                    logger.error("Failed to delete SNS topic for series {}, but series was deleted",
+                            id, e);
+                    // Don't fail the operation if SNS deletion fails
+                }
+            }
+
+            // Delete S3 bucket if needed
+            try {
+                s3Service.deleteSeriesBucket(id);
+                logger.info("Deleted S3 bucket for series {}", id);
+            } catch (Exception e) {
+                logger.error("Failed to delete S3 bucket for series {}, but series was deleted",
+                        id, e);
+                // Don't fail the operation if S3 deletion fails
+            }
+
+            resp.put("success", true);
+            resp.put("message", "Series deleted successfully.");
+            return ResponseEntity.ok(resp);
+
+        } catch (Exception e) {
+            logger.error("Error deleting series {}: {}", id, e.getMessage(), e);
+            resp.put("success", false);
+            resp.put("message", "An error occurred while deleting the series.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(resp);
+        }
     }
 
     private Long toLong(Object value) {

@@ -39,6 +39,7 @@ CREATE TABLE shiur_series (
     requires_permission    BOOLEAN NOT NULL DEFAULT FALSE,
     inst_id                BIGINT NOT NULL,
     description            TEXT NULL,
+    sns_topic_arn          VARCHAR(512) NULL,
     CONSTRAINT fk_series_rebbi FOREIGN KEY (rebbi_id) REFERENCES rebbeim(rebbi_id) ON DELETE RESTRICT,
     CONSTRAINT fk_series_topic FOREIGN KEY (topic_id) REFERENCES topics(topic_id) ON DELETE RESTRICT,
     CONSTRAINT fk_series_inst FOREIGN KEY (inst_id) REFERENCES institutions(inst_id) ON DELETE RESTRICT

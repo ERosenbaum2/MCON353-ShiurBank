@@ -13,6 +13,8 @@ import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
+import software.amazon.awssdk.services.s3.model.DeleteBucketRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
@@ -105,6 +107,74 @@ public class S3Service {
         } catch (Exception e) {
             logger.error("Unexpected error creating S3 bucket {}: {}", bucketName, e.getMessage(), e);
             throw new RuntimeException("Failed to create S3 bucket for series " + seriesId, e);
+        }
+    }
+
+    /**
+     * Delete an S3 bucket and all its contents for a series
+     * @param seriesId The series ID
+     * @throws RuntimeException if deletion fails
+     */
+    public void deleteSeriesBucket(Long seriesId) {
+        String bucketName = "shiur-series-" + seriesId;
+
+        try {
+            // First, check if bucket exists
+            try {
+                HeadBucketRequest headBucketRequest = HeadBucketRequest.builder()
+                        .bucket(bucketName)
+                        .build();
+                s3Client.headBucket(headBucketRequest);
+            } catch (S3Exception e) {
+                if (e.statusCode() == 404) {
+                    logger.info("Bucket {} does not exist, skipping deletion", bucketName);
+                    return;
+                }
+                throw e;
+            }
+
+            // List and delete all objects in the bucket
+            ListObjectsV2Request listRequest = ListObjectsV2Request.builder()
+                    .bucket(bucketName)
+                    .build();
+
+            ListObjectsV2Response listResponse;
+            do {
+                listResponse = s3Client.listObjectsV2(listRequest);
+
+                for (S3Object s3Object : listResponse.contents()) {
+                    DeleteObjectRequest deleteObjectRequest = DeleteObjectRequest.builder()
+                            .bucket(bucketName)
+                            .key(s3Object.key())
+                            .build();
+                    s3Client.deleteObject(deleteObjectRequest);
+                    logger.debug("Deleted object: {}", s3Object.key());
+                }
+
+                // Continue if there are more objects
+                listRequest = ListObjectsV2Request.builder()
+                        .bucket(bucketName)
+                        .continuationToken(listResponse.nextContinuationToken())
+                        .build();
+
+            } while (listResponse.isTruncated());
+
+            // Now delete the empty bucket
+            DeleteBucketRequest deleteBucketRequest = DeleteBucketRequest.builder()
+                    .bucket(bucketName)
+                    .build();
+
+            s3Client.deleteBucket(deleteBucketRequest);
+            logger.info("Successfully deleted S3 bucket: {}", bucketName);
+
+        } catch (S3Exception e) {
+            logger.error("Failed to delete S3 bucket {}: {} - {}", bucketName,
+                    e.awsErrorDetails().errorCode(), e.awsErrorDetails().errorMessage(), e);
+            throw new RuntimeException("Failed to delete S3 bucket for series " + seriesId + ": " +
+                    e.awsErrorDetails().errorMessage(), e);
+        } catch (Exception e) {
+            logger.error("Unexpected error deleting S3 bucket {}: {}", bucketName, e.getMessage(), e);
+            throw new RuntimeException("Failed to delete S3 bucket for series " + seriesId, e);
         }
     }
 
