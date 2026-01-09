@@ -171,6 +171,32 @@ public class SubscriberDAO {
     }
 
     /**
+     * Update the SNS subscription ARN for a user's subscription
+     * @param userId The user ID
+     * @param seriesId The series ID
+     * @param snsSubscriptionArn The new subscription ARN
+     */
+    public void updateSubscriptionArn(Long userId, Long seriesId, String snsSubscriptionArn) {
+        String sql = "UPDATE subscribers SET sns_subscription_arn = ? " +
+                "WHERE user_id = ? AND series_id = ?";
+
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, snsSubscriptionArn);
+            stmt.setLong(2, userId);
+            stmt.setLong(3, seriesId);
+
+            int rows = stmt.executeUpdate();
+            if (rows == 0) {
+                throw new SQLException("Updating subscription ARN failed, no rows affected.");
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error updating subscription ARN", e);
+        }
+    }
+
+    /**
      * Get all subscribers for a series
      * @param seriesId The series ID
      * @return List of subscriber information

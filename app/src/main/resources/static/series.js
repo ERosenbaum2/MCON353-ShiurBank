@@ -1154,6 +1154,23 @@ function populateSubscriptionTypeDropdown() {
 
 async function checkSubscriptionStatus() {
   try {
+    // First try to sync with AWS to see if subscription was confirmed
+    const syncResponse = await fetch(`/api/subscription/series/${currentSeriesId}/sync-status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    if (syncResponse.ok) {
+      const syncData = await syncResponse.json();
+      if (syncData.success) {
+        isSubscribed = syncData.isSubscribed;
+        isPendingConfirmation = syncData.isPending || false;
+        updateSubscribeButton();
+        return;
+      }
+    }
+
+    // Fallback to regular status check if sync fails
     const response = await fetch(`/api/subscription/series/${currentSeriesId}/status`);
     if (!response.ok) throw new Error('Failed to check subscription status');
 

@@ -13,6 +13,10 @@ import software.amazon.awssdk.services.sns.SnsClient;
 import software.amazon.awssdk.services.sns.model.*;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 @Service
@@ -192,6 +196,74 @@ public class SNSService {
         } catch (SnsException e) {
             logger.error("Error unsubscribing {}: {}", subscriptionArn, e.getMessage(), e);
             throw new RuntimeException("Failed to unsubscribe: " + subscriptionArn, e);
+        }
+    }
+
+    /**
+     * Get all subscriptions for a topic
+     * @param topicArn The ARN of the topic
+     * @return List of subscriptions with endpoint and subscription ARN
+     */
+    public List<Map<String, String>> listSubscriptionsByTopic(String topicArn) {
+        List<Map<String, String>> subscriptions = new ArrayList<>();
+
+        try {
+            ListSubscriptionsByTopicRequest request = ListSubscriptionsByTopicRequest.builder()
+                    .topicArn(topicArn)
+                    .build();
+
+            ListSubscriptionsByTopicResponse response = snsClient.listSubscriptionsByTopic(request);
+
+            for (software.amazon.awssdk.services.sns.model.Subscription sub : response.subscriptions()) {
+                Map<String, String> subscription = new HashMap<>();
+                subscription.put("endpoint", sub.endpoint());
+                subscription.put("subscriptionArn", sub.subscriptionArn());
+                subscription.put("protocol", sub.protocol());
+                subscriptions.add(subscription);
+            }
+
+            logger.debug("Found {} subscriptions for topic {}", subscriptions.size(), topicArn);
+
+        } catch (SnsException e) {
+            logger.error("Error listing subscriptions for topic {}: {}", topicArn, e.getMessage(), e);
+            throw new RuntimeException("Failed to list subscriptions for topic: " + topicArn, e);
+        }
+
+        return subscriptions;
+    }
+
+    /**
+     * Find subscription ARN by email address for a topic
+     * @param topicArn The ARN of the topic
+     * @param email The email address to search for
+     * @return The subscription ARN, or null if not found or still pending
+     */
+    public String findSubscriptionArnByEmail(String topicArn, String email) {
+        try {
+            List<Map<String, String>> subscriptions = listSubscriptionsByTopic(topicArn);
+
+            for (Map<String, String> sub : subscriptions) {
+                String endpoint = sub.get("endpoint");
+                String subArn = sub.get("subscriptionArn");
+
+                // Match email (case-insensitive) and check if confirmed
+                if (endpoint != null && endpoint.equalsIgnoreCase(email)) {
+                    // If ARN is "PendingConfirmation", return null
+                    if ("PendingConfirmation".equalsIgnoreCase(subArn)) {
+                        logger.debug("Subscription for {} is still pending confirmation", email);
+                        return null;
+                    }
+                    logger.debug("Found confirmed subscription ARN for {}: {}", email, subArn);
+                    return subArn;
+                }
+            }
+
+            logger.debug("No subscription found for email: {}", email);
+            return null;
+
+        } catch (Exception e) {
+            logger.error("Error finding subscription ARN for email {}: {}", email, e.getMessage(), e);
+            return null;
         }
     }
 

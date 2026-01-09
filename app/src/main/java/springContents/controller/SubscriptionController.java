@@ -254,6 +254,81 @@ public class SubscriptionController {
         }
     }
 
+    /**
+     * Check and sync subscription status with AWS SNS
+     * This checks if the user's email subscription has been confirmed in AWS
+     * and updates the database accordingly
+     */
+    @PostMapping("/series/{seriesId}/sync-status")
+    public ResponseEntity<Map<String, Object>> syncSubscriptionStatus(@PathVariable Long seriesId,
+                                                                      HttpSession session) {
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            User user = (User) session.getAttribute("user");
+            if (user == null) {
+                response.put("success", false);
+                response.put("message", "Not logged in.");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            }
+
+            // Get user's subscription from database
+            Map<String, Object> subscription = subscriberDAO.getUserSubscription(user.getUserId(), seriesId);
+            if (subscription == null) {
+                response.put("success", true);
+                response.put("isSubscribed", false);
+                response.put("isPending", false);
+                return ResponseEntity.ok(response);
+            }
+
+            String currentArn = (String) subscription.get("snsSubscriptionArn");
+
+            // If not pending, no need to sync
+            if (currentArn != null && !currentArn.equalsIgnoreCase("pending confirmation")) {
+                response.put("success", true);
+                response.put("isSubscribed", true);
+                response.put("isPending", false);
+                return ResponseEntity.ok(response);
+            }
+
+            // Get series topic ARN
+            String topicArn = shiurSeriesDAO.getSeriesTopicArn(seriesId);
+            if (topicArn == null || topicArn.trim().isEmpty()) {
+                response.put("success", false);
+                response.put("message", "Series topic not found.");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            // Check AWS SNS for confirmed subscription
+            String confirmedArn = snsService.findSubscriptionArnByEmail(topicArn, user.getEmail());
+
+            if (confirmedArn != null) {
+                // Update database with confirmed ARN
+                subscriberDAO.updateSubscriptionArn(user.getUserId(), seriesId, confirmedArn);
+                logger.info("Updated subscription ARN for user {} on series {} to confirmed ARN",
+                        user.getUserId(), seriesId);
+
+                response.put("success", true);
+                response.put("isSubscribed", true);
+                response.put("isPending", false);
+                response.put("message", "Subscription confirmed!");
+            } else {
+                // Still pending
+                response.put("success", true);
+                response.put("isSubscribed", false);
+                response.put("isPending", true);
+            }
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            logger.error("Error syncing subscription status for series {}: {}", seriesId, e.getMessage(), e);
+            response.put("success", false);
+            response.put("message", "Error syncing subscription status.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
     private Long toLong(Object value) {
         if (value == null) {
             return null;
