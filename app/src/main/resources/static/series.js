@@ -8,6 +8,10 @@ let pendingRemoveUserName = null;
 let pendingAddGabbaiUserId = null;
 let pendingAddGabbaiUserName = null;
 const SKIP_INTERVAL = 15; // 15 seconds
+let subscriberTypes = [];
+let currentSubscription = null;
+let isSubscribed = false;
+let isPendingConfirmation = false;
 
 document.addEventListener('DOMContentLoaded', async () => {
   await checkAuthAndShowPage();
@@ -42,6 +46,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Set up audio event listeners
   initializeAudioListeners();
+
+  // Load subscription data
+  await loadSubscriberTypes();
+  await checkSubscriptionStatus();
 });
 
 function getSeriesIdFromPath() {
@@ -1110,4 +1118,167 @@ function autoPlayRecording(recordingId) {
 
   // Play the recording
   playRecording(recordingId, s3FilePath);
+}
+
+// ============ SUBSCRIPTION FUNCTIONS ============
+
+async function loadSubscriberTypes() {
+  try {
+    const response = await fetch('/api/subscription/types');
+    if (!response.ok) throw new Error('Failed to load subscriber types');
+
+    const data = await response.json();
+    if (data.success && data.types) {
+      subscriberTypes = data.types;
+      populateSubscriptionTypeDropdown();
+    }
+  } catch (error) {
+    console.error('Error loading subscriber types:', error);
+  }
+}
+
+function populateSubscriptionTypeDropdown() {
+  const select = document.getElementById('subscription-type-select');
+  select.innerHTML = '';
+
+  subscriberTypes.forEach(type => {
+    const option = document.createElement('option');
+    option.value = type.typeId;
+    option.textContent = type.name;
+    select.appendChild(option);
+  });
+
+  // Set default to "On upload" (type_id = 1)
+  select.value = '1';
+}
+
+async function checkSubscriptionStatus() {
+  try {
+    const response = await fetch(`/api/subscription/series/${currentSeriesId}/status`);
+    if (!response.ok) throw new Error('Failed to check subscription status');
+
+    const data = await response.json();
+    if (data.success) {
+      isSubscribed = data.isSubscribed;
+      isPendingConfirmation = data.isPending || false;
+      currentSubscription = data.subscription || null;
+      updateSubscribeButton();
+    }
+  } catch (error) {
+    console.error('Error checking subscription status:', error);
+  }
+}
+
+function updateSubscribeButton() {
+  const btn = document.getElementById('subscribe-btn');
+
+  if (isSubscribed) {
+    btn.textContent = 'Subscribed!';
+    btn.classList.add('subscribed');
+  } else if (isPendingConfirmation) {
+    btn.textContent = 'Pending Confirmation';
+    btn.classList.remove('subscribed');
+  } else {
+    btn.textContent = 'Subscribe';
+    btn.classList.remove('subscribed');
+  }
+}
+
+function handleSubscribeClick() {
+  if (isSubscribed) {
+    openUnsubscribeModal();
+  } else if (isPendingConfirmation) {
+    alert('Your subscription is pending email confirmation.\n\n' +
+          'Please check your email (including spam folder) and click the confirmation link.\n\n' +
+          'If you need to unsubscribe, click this button again after confirming.');
+  } else {
+    openSubscribeModal();
+  }
+}
+
+function openSubscribeModal() {
+  document.getElementById('subscribe-modal').classList.add('active');
+}
+
+function closeSubscribeModal() {
+  document.getElementById('subscribe-modal').classList.remove('active');
+}
+
+function openUnsubscribeModal() {
+  document.getElementById('unsubscribe-modal').classList.add('active');
+}
+
+function closeUnsubscribeModal() {
+  document.getElementById('unsubscribe-modal').classList.remove('active');
+}
+
+async function confirmSubscribe() {
+  const select = document.getElementById('subscription-type-select');
+  const subscriptionTypeId = parseInt(select.value);
+
+  // Validate that "On upload" (type_id = 1) is selected
+  if (subscriptionTypeId !== 1) {
+    alert('Only "On upload" notifications are currently supported. Please select "On upload" from the dropdown.');
+    return;
+  }
+
+  try {
+    const response = await fetch(`/api/subscription/series/${currentSeriesId}/subscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscriptionTypeId: subscriptionTypeId })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      closeSubscribeModal();
+
+      // Update UI to pending state
+      isPendingConfirmation = true;
+      isSubscribed = false;
+      updateSubscribeButton();
+
+      // Show success message with email confirmation reminder
+      alert('Subscription initiated!\n\n' +
+            'Please check your email to confirm the subscription. ' +
+            'The confirmation email may have been sent to your spam folder.\n\n' +
+            'You must click the confirmation link in the email to activate your subscription.');
+
+      // Refresh subscription status
+      await checkSubscriptionStatus();
+    } else {
+      alert('Error: ' + (data.message || 'Failed to subscribe. Please try again.'));
+    }
+  } catch (error) {
+    console.error('Error subscribing:', error);
+    alert('An error occurred while subscribing. Please try again.');
+  }
+}
+
+async function confirmUnsubscribe() {
+  try {
+    const response = await fetch(`/api/subscription/series/${currentSeriesId}/unsubscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      closeUnsubscribeModal();
+
+      // Update UI
+      isSubscribed = false;
+      currentSubscription = null;
+      updateSubscribeButton();
+
+      alert('Successfully unsubscribed from this series.');
+    } else {
+      alert('Error: ' + (data.message || 'Failed to unsubscribe. Please try again.'));
+    }
+  } catch (error) {
+    console.error('Error unsubscribing:', error);
+    alert('An error occurred while unsubscribing. Please try again.');
+  }
 }

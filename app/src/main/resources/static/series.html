@@ -26,14 +26,22 @@
 <main class="hidden" id="series-main">
   <div class="dashboard-content">
     <h2 id="series-title">Loading series...</h2>
-    <button type="button" class="btn-secondary" onclick="window.location.href='/dashboard.html'" style="margin: 0.5rem 0 1rem 0;">
-      Back to Dashboard
-    </button>
 
-    <!-- Upload button (only visible for gabbaim) -->
-    <button type="button" id="upload-shiur-btn" class="btn-primary hidden" onclick="openUploadModal()">
-      Upload Shiur
-    </button>
+    <!-- Button group for Back, Subscribe, and Upload buttons -->
+    <div class="button-group">
+      <button type="button" class="btn-secondary" onclick="window.location.href='/dashboard.html'">
+        Back to Dashboard
+      </button>
+
+      <button type="button" id="subscribe-btn" onclick="handleSubscribeClick()">
+        Subscribe
+      </button>
+
+      <!-- Upload button (only visible for gabbaim) -->
+      <button type="button" id="upload-shiur-btn" class="btn-primary hidden" onclick="openUploadModal()">
+        Upload Shiur
+      </button>
+    </div>
 
     <p id="series-meta"></p>
     <p id="series-description"></p>
@@ -77,6 +85,62 @@
     </div>
   </div>
 </main>
+
+<!-- Subscribe Modal -->
+<div id="subscribe-modal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Subscribe to Series</h2>
+      <button class="close-modal" onclick="closeSubscribeModal()">&times;</button>
+    </div>
+
+    <div class="modal-body subscription-modal-body">
+      <p>Please select how often you want to receive notifications:</p>
+
+      <div class="subscription-form-group">
+        <label for="subscription-type-select">Notification Frequency</label>
+        <select id="subscription-type-select">
+          <!-- Options will be populated dynamically -->
+        </select>
+      </div>
+
+      <div class="subscription-warning">
+        <strong>Note:</strong> Only "On upload" notifications are currently supported. Other options are not yet available.
+      </div>
+
+      <div class="subscription-info">
+        After subscribing, you will receive a confirmation email from AWS. Please check your inbox (and spam folder) and click the confirmation link to activate your subscription.
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn-cancel" onclick="closeSubscribeModal()">Cancel</button>
+      <button type="button" class="btn-confirm" onclick="confirmSubscribe()">Subscribe</button>
+    </div>
+  </div>
+</div>
+
+<!-- Unsubscribe Modal -->
+<div id="unsubscribe-modal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Unsubscribe from Series</h2>
+      <button class="close-modal" onclick="closeUnsubscribeModal()">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="unsubscribe-warning">
+        <p>Are you sure you want to unsubscribe from this series?</p>
+        <p>You will no longer receive email notifications when new shiurim are uploaded.</p>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn-cancel" onclick="closeUnsubscribeModal()">Cancel</button>
+      <button type="button" class="btn-confirm danger" onclick="confirmUnsubscribe()">Unsubscribe</button>
+    </div>
+  </div>
+</div>
 
 <!-- Upload Modal -->
 <div id="upload-modal" class="modal-overlay">

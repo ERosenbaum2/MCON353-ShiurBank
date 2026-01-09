@@ -107,6 +107,7 @@ CREATE TABLE subscribers (
     user_id              BIGINT NOT NULL,
     series_id            BIGINT NOT NULL,
     subscription_type_id BIGINT NOT NULL,
+    sns_subscription_arn VARCHAR(512) NULL,
     CONSTRAINT fk_sub_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
     CONSTRAINT fk_sub_series FOREIGN KEY (series_id) REFERENCES shiur_series(series_id) ON DELETE CASCADE,
     CONSTRAINT fk_sub_type FOREIGN KEY (subscription_type_id) REFERENCES subscriber_types(type_id) ON DELETE RESTRICT,
