@@ -7,16 +7,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 import springContents.dao.AdminDAO;
-import springContents.dao.RecordingDAO;
 import springContents.dao.RebbiDAO;
 import springContents.dao.ShiurSeriesDAO;
 import springContents.dao.TopicDAO;
@@ -25,6 +24,7 @@ import springContents.model.Rebbi;
 import springContents.model.Topic;
 import springContents.model.User;
 import springContents.service.SNSService;
+import springContents.service.S3Service;
 
 import java.util.HashMap;
 import java.util.List;
@@ -42,7 +42,7 @@ public class SeriesController {
     private final UserDAO userDAO;
     private final AdminDAO adminDAO;
     private final SNSService snsService;
-    private final RecordingDAO recordingDAO;
+    private final S3Service s3Service;
 
     @Autowired
     public SeriesController(TopicDAO topicDAO,
@@ -51,14 +51,14 @@ public class SeriesController {
                             UserDAO userDAO,
                             AdminDAO adminDAO,
                             SNSService snsService,
-                            RecordingDAO recordingDAO) {
+                            S3Service s3Service) {
         this.topicDAO = topicDAO;
         this.rebbiDAO = rebbiDAO;
         this.shiurSeriesDAO = shiurSeriesDAO;
         this.userDAO = userDAO;
         this.adminDAO = adminDAO;
         this.snsService = snsService;
-        this.recordingDAO = recordingDAO;
+        this.s3Service = s3Service;
     }
 
     @GetMapping("/topics")
@@ -77,7 +77,7 @@ public class SeriesController {
         if (user == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        List<Map<String, Object>> series = shiurSeriesDAO.getSeriesForGabbai(user.getUserId());
+        List<Map<String, Object>> series = shiurSeriesDAO.getAllSeriesForUser(user.getUserId());
         return ResponseEntity.ok(series);
     }
 
@@ -102,7 +102,7 @@ public class SeriesController {
                 : Boolean.FALSE;
 
         if (rebbiId == null || topicId == null || instId == null ||
-            description == null || description.trim().isEmpty()) {
+                description == null || description.trim().isEmpty()) {
             resp.put("success", false);
             resp.put("message", "Missing required fields.");
             return ResponseEntity.badRequest().body(resp);
@@ -114,8 +114,32 @@ public class SeriesController {
 
         long seriesId = shiurSeriesDAO.createSeries(rebbiId, topicId, requiresPermission, instId, description);
 
+        // Create S3 bucket for the series
+        // This must happen within the transaction so it rolls back if bucket creation fails
+        try {
+            String bucketName = s3Service.createSeriesBucket(seriesId);
+            logger.info("Created S3 bucket {} for series {}", bucketName, seriesId);
+        } catch (Exception e) {
+            logger.error("Failed to create S3 bucket for series {}: {}", seriesId, e.getMessage(), e);
+            // Re-throw to trigger transaction rollback
+            throw new RuntimeException("Failed to create S3 bucket for series: " + e.getMessage(), e);
+        }
+
+        // Create SNS topic for the series
+        try {
+            String topicArn = snsService.createSeriesTopic(seriesId);
+            shiurSeriesDAO.updateSeriesTopicArn(seriesId, topicArn);
+            logger.info("Created and associated SNS topic for series {}: {}", seriesId, topicArn);
+        } catch (Exception e) {
+            logger.error("Failed to create SNS topic for series {}: {}", seriesId, e.getMessage(), e);
+            // Re-throw to trigger transaction rollback
+            throw new RuntimeException("Failed to create SNS topic for series: " + e.getMessage(), e);
+        }
+
         // Creator is always a gabbai
         shiurSeriesDAO.addGabbai(current.getUserId(), seriesId);
+        // Creator is also automatically a participant
+        shiurSeriesDAO.addParticipant(current.getUserId(), seriesId);
 
         // Optional extra gabbaim: if any invalid, fail the whole creation
         Object extraGabbaimObj = body.get("extraGabbaim");
@@ -153,66 +177,40 @@ public class SeriesController {
                     );
                 }
                 shiurSeriesDAO.addGabbai(extra.getUserId(), seriesId);
+                // Extra gabbaim are also automatically participants
+                shiurSeriesDAO.addParticipant(extra.getUserId(), seriesId);
             }
         }
-        
+
         if (needsVerification) {
             // Add to pending permission table
             adminDAO.addPendingPermission(seriesId);
-            
+
             // Get series details for notification
             Map<String, Object> seriesDetails = shiurSeriesDAO.getSeriesDetails(seriesId);
             if (seriesDetails != null) {
                 // Send SNS notification
                 try {
                     snsService.notifyNewSeriesRequiringVerification(
-                        seriesId,
-                        description,
-                        (String) seriesDetails.get("rebbiName"),
-                        (String) seriesDetails.get("topicName"),
-                        (String) seriesDetails.get("institutionName"),
-                        current.getUsername()
+                            seriesId,
+                            description,
+                            (String) seriesDetails.get("rebbiName"),
+                            (String) seriesDetails.get("topicName"),
+                            (String) seriesDetails.get("institutionName"),
+                            current.getUsername()
                     );
                 } catch (Exception e) {
                     // Log error but don't fail the series creation
-                    // The series is already created and added to pending_permission
+                    // The series is already created and added to series_pending_approval
                     // SNS notification failure shouldn't block the operation
                     logger.error("Failed to send SNS notification for series {}: {}", seriesId, e.getMessage(), e);
                 }
             }
         }
 
-        // Send admin notification about new series creation
-        try {
-            Map<String, Object> seriesDetails = shiurSeriesDAO.getSeriesDetails(seriesId);
-            if (seriesDetails != null) {
-                String subject = "New Shiur Series Created";
-                String message = String.format(
-                    "A new shiur series has been created:\n\n" +
-                    "Series ID: %d\n" +
-                    "Description: %s\n" +
-                    "Topic: %s\n" +
-                    "Rebbi: %s\n" +
-                    "Institution: %s\n" +
-                    "Created by: %s (username: %s)\n",
-                    seriesId,
-                    seriesDetails.get("description"),
-                    seriesDetails.get("topicName"),
-                    seriesDetails.get("rebbiName"),
-                    seriesDetails.get("institutionName"),
-                    current.getFirstName() + " " + current.getLastName(),
-                    current.getUsername()
-                );
-                snsService.publishToAdminTopic(message, subject);
-            }
-        } catch (Exception e) {
-            // Log error but don't fail the request
-            // Notification failure shouldn't prevent series creation
-            System.err.println("Failed to send admin notification: " + e.getMessage());
-        }
-
         resp.put("success", true);
         resp.put("seriesId", seriesId);
+        resp.put("needsVerification", needsVerification);
         return ResponseEntity.ok(resp);
     }
 
@@ -231,30 +229,79 @@ public class SeriesController {
         return ResponseEntity.ok(details);
     }
 
-    @GetMapping("/search")
-    public ResponseEntity<Map<String, Object>> search(@RequestParam("q") String query,
-                                                       HttpSession session) {
+    @GetMapping("/series/{id}/is-gabbai")
+    public ResponseEntity<Map<String, Boolean>> checkIfGabbai(@PathVariable("id") Long id,
+                                                              HttpSession session) {
         User user = (User) session.getAttribute("user");
         if (user == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        if (query == null || query.trim().isEmpty()) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("seriesResults", new ArrayList<>());
-            response.put("recordingResults", new ArrayList<>());
-            return ResponseEntity.ok(response);
+        boolean isGabbai = shiurSeriesDAO.isGabbaiForSeries(user.getUserId(), id);
+        Map<String, Boolean> response = new HashMap<>();
+        response.put("isGabbai", isGabbai);
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/series/{id}")
+    @Transactional
+    public ResponseEntity<Map<String, Object>> deleteSeries(@PathVariable("id") Long id,
+                                                            HttpSession session) {
+        Map<String, Object> resp = new HashMap<>();
+        User user = (User) session.getAttribute("user");
+        if (user == null) {
+            resp.put("success", false);
+            resp.put("message", "Not logged in.");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(resp);
         }
 
-        String searchQuery = query.trim();
-        List<Map<String, Object>> seriesResults = shiurSeriesDAO.searchSeries(searchQuery, user.getUserId());
-        List<Map<String, Object>> recordingResults = recordingDAO.searchRecordings(searchQuery, user.getUserId());
+        // Verify user is a gabbai for this series
+        if (!shiurSeriesDAO.isGabbaiForSeries(user.getUserId(), id)) {
+            resp.put("success", false);
+            resp.put("message", "You do not have permission to delete this series.");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(resp);
+        }
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("seriesResults", seriesResults);
-        response.put("recordingResults", recordingResults);
+        try {
+            // Get the topic ARN before deleting the series
+            String topicArn = shiurSeriesDAO.getSeriesTopicArn(id);
 
-        return ResponseEntity.ok(response);
+            // Delete the series (this will CASCADE delete related records)
+            shiurSeriesDAO.deleteSeries(id);
+            logger.info("Deleted series {} by user {}", id, user.getUserId());
+
+            // Delete the SNS topic if it exists
+            if (topicArn != null && !topicArn.trim().isEmpty()) {
+                try {
+                    snsService.deleteTopic(topicArn);
+                    logger.info("Deleted SNS topic for series {}: {}", id, topicArn);
+                } catch (Exception e) {
+                    logger.error("Failed to delete SNS topic for series {}, but series was deleted",
+                            id, e);
+                    // Don't fail the operation if SNS deletion fails
+                }
+            }
+
+            // Delete S3 bucket if needed
+            try {
+                s3Service.deleteSeriesBucket(id);
+                logger.info("Deleted S3 bucket for series {}", id);
+            } catch (Exception e) {
+                logger.error("Failed to delete S3 bucket for series {}, but series was deleted",
+                        id, e);
+                // Don't fail the operation if S3 deletion fails
+            }
+
+            resp.put("success", true);
+            resp.put("message", "Series deleted successfully.");
+            return ResponseEntity.ok(resp);
+
+        } catch (Exception e) {
+            logger.error("Error deleting series {}: {}", id, e.getMessage(), e);
+            resp.put("success", false);
+            resp.put("message", "An error occurred while deleting the series.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(resp);
+        }
     }
 
     private Long toLong(Object value) {

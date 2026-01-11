@@ -2,8 +2,6 @@ package springContents.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
 
 import software.amazon.awssdk.regions.Region;
@@ -14,24 +12,21 @@ import software.amazon.awssdk.services.rds.model.RdsException;
 import software.amazon.awssdk.services.rds.model.StartDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.StopDbInstanceRequest;
 
-import java.io.IOException;
-import java.util.Properties;
-
 @Service
 public class RdsService {
     private static final Logger logger = LoggerFactory.getLogger(RdsService.class);
     private final RdsClient rdsClient;
+    // Hardcoded values to ensure RDS control works even when database is down
+    private static final String DB_INSTANCE_IDENTIFIER = "shiurbank";
+    private static final Region REGION = Region.US_EAST_1;
     private final String dbInstanceIdentifier;
     private final Region region;
 
-    public RdsService(ResourceLoader resourceLoader) throws IOException {
-        Properties credentials = new Properties();
-        Resource resource = resourceLoader.getResource("classpath:dbcredentials.properties");
-        credentials.load(resource.getInputStream());
-
-        this.dbInstanceIdentifier = credentials.getProperty("instance");
-        String regionStr = credentials.getProperty("rds.region", "us-east-1");
-        this.region = Region.of(regionStr);
+    public RdsService() {
+        // Use hardcoded values instead of reading from properties file
+        // This ensures we can start/stop the database even when it's down
+        this.dbInstanceIdentifier = DB_INSTANCE_IDENTIFIER;
+        this.region = REGION;
 
         this.rdsClient = RdsClient.builder()
                 .region(region)

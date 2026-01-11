@@ -264,3 +264,225 @@
         width: 95%;
     }
 }
+
+/* Database Control Floating Button */
+.db-control-floating-btn {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: #3F88C5;
+    color: white;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    transition: all 0.3s ease;
+}
+
+.db-control-floating-btn:hover {
+    background-color: #2d6a9f;
+    transform: scale(1.1);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.db-control-floating-btn:active {
+    transform: scale(0.95);
+}
+
+/* Database Control Modal */
+.db-control-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.db-control-modal-content {
+    background-color: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    max-width: 400px;
+    width: 90%;
+    position: relative;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+.db-control-modal-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #999;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.db-control-modal-close:hover {
+    color: #333;
+}
+
+/* Inline-style extractions */
+
+/* Institutions selector */
+.institutions-scroll-container {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    padding: 0.5rem;
+    border-radius: 4px;
+}
+
+.institutions-help-text {
+    display: block;
+    margin-top: 0.25rem;
+    color: #666;
+}
+
+/* DB Control modal text */
+.db-control-title {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: #1B4965;
+}
+
+.db-control-subtitle {
+    margin-bottom: 1rem;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+/* DB Control button row */
+.db-control-button-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.db-control-button-row-spaced {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+/* DB Control flexible buttons */
+.db-control-btn-flex {
+    flex: 1;
+}
+
+.db-control-btn-small {
+    font-size: 0.9rem;
+    padding: 0.6rem;
+}
+
+/* DB Control status */
+.db-control-status-text {
+    margin: 0.5rem 0;
+    font-size: 0.95rem;
+}
+
+.db-control-status-label {
+    font-weight: bold;
+    color: #1B4965;
+}
+
+/* DB Control messages */
+.db-control-error {
+    margin-top: 0.75rem;
+    margin-bottom: 0;
+    font-size: 0.85rem;
+    color: #e74c3c;
+    display: none;
+}
+
+.db-control-message {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #666;
+    min-height: 1.2rem;
+}
+
+/* Button color overrides */
+.btn-success {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+/* Hidden section */
+.hidden-section {
+    display: none;
+}
+
+/* Database Control - Disabled Button Styles */
+#db-control-start-btn:disabled,
+#db-control-stop-btn:disabled,
+#db-control-check-btn:disabled {
+    background-color: #95a5a6 !important;
+    cursor: not-allowed !important;
+    opacity: 0.6;
+}
+
+#db-control-start-btn:disabled:hover,
+#db-control-stop-btn:disabled:hover,
+#db-control-check-btn:disabled:hover {
+    background-color: #95a5a6 !important;
+    transform: none !important;
+}
+
+/* Ensure success/danger colors are overridden when disabled */
+.btn-success:disabled {
+    background-color: #95a5a6 !important;
+    border-color: #95a5a6 !important;
+}
+
+.btn-danger:disabled {
+    background-color: #95a5a6 !important;
+    border-color: #95a5a6 !important;
+}
+
+/* Login Button - Database Offline State */
+#login-btn.db-offline {
+    background-color: #95a5a6;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+#login-btn.db-offline:hover {
+    background-color: #95a5a6;
+    transform: none;
+}
+
+#login-btn:disabled {
+    background-color: #95a5a6;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+#login-btn:disabled:hover {
+    background-color: #95a5a6;
+    transform: none;
+}

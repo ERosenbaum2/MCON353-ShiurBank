@@ -70,6 +70,37 @@ public class AudioController {
         }
     }
 
+    /**
+     * Stream audio file from a series bucket
+     */
+    @GetMapping("/series/{seriesId}/stream/{fileName:.+}")
+    public ResponseEntity<InputStreamResource> streamSeriesAudio(
+            @PathVariable Long seriesId,
+            @PathVariable String fileName) {
+        try {
+            // Decode the filename in case it has special characters
+            String decodedFileName = URLDecoder.decode(fileName, StandardCharsets.UTF_8);
+
+            ResponseInputStream<GetObjectResponse> s3Object =
+                    s3Service.getAudioFileFromSeriesBucket(seriesId, decodedFileName);
+
+            // Determine content type based on file extension
+            String contentType = getContentType(decodedFileName);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.parseMediaType(contentType));
+            headers.setContentDispositionFormData("inline", decodedFileName);
+            headers.setCacheControl("public, max-age=3600");
+
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(new InputStreamResource(s3Object));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+    }
+
     private String getContentType(String fileName) {
         String lowerFileName = fileName.toLowerCase();
         if (lowerFileName.endsWith(".mp3")) {

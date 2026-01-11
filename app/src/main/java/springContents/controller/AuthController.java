@@ -46,18 +46,33 @@ public class AuthController {
             return ResponseEntity.badRequest().body(response);
         }
 
-        User user = userDAO.authenticateUser(username, password);
+        try {
+            User user = userDAO.authenticateUser(username, password);
 
-        if (user != null) {
-            session.setAttribute("user", user);
-            session.setAttribute("username", user.getUsername());
-            response.put("success", true);
-            response.put("username", user.getUsername());
-            return ResponseEntity.ok(response);
-        } else {
-            response.put("success", false);
-            response.put("message", "Invalid username or password");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            if (user != null) {
+                session.setAttribute("user", user);
+                session.setAttribute("username", user.getUsername());
+                response.put("success", true);
+                response.put("username", user.getUsername());
+                return ResponseEntity.ok(response);
+            } else {
+                response.put("success", false);
+                response.put("message", "Invalid username or password");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            }
+        } catch (RuntimeException e) {
+            // Check if it's a database connection error
+            String errorMsg = e.getMessage();
+            if (errorMsg != null && (errorMsg.contains("Connection") || 
+                                     errorMsg.contains("Communications link failure") ||
+                                     errorMsg.contains("Unknown database") ||
+                                     errorMsg.contains("Access denied"))) {
+                response.put("success", false);
+                response.put("message", "Database connection error. The database might be down. Please start the database first.");
+                return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(response);
+            }
+            // Re-throw if it's not a connection error
+            throw e;
         }
     }
 

@@ -7,20 +7,15 @@
     <link rel="icon" type="image/png" href="ShiurBank Logo No Words.png">
     <link rel="stylesheet" href="common-styles.css">
     <link rel="stylesheet" href="index-styles.css">
-    <link rel="stylesheet" href="search-styles.css">
     <script src="auth.js" defer></script>
-    <script src="search.js" defer></script>
 </head>
 <body>
+
 <!-- Main content -->
 <div id="main-content">
     <header>
         <div class="header-content">
             <img src="ShiurBank Logo No Words.png" alt="ShiurBank Logo" class="header-logo">
-            <div class="search-container">
-                <input type="text" id="search-input" placeholder="Search for Series or Shiurim...">
-                <button id="search-btn" class="btn-primary">Search</button>
-            </div>
             <h1>ShiurBank</h1>
         </div>
     </header>
@@ -30,7 +25,9 @@
             <img src="Full ShiurBank Logo.png" alt="ShiurBank" class="homepage-logo">
             <h2>Welcome to ShiurBank</h2>
             <p>Your source for Shiurim</p>
-            <button id="login-btn" class="btn-primary" onclick="openModal()">Login/Create Account</button>
+            <button id="login-btn" class="btn-primary" onclick="openModal()">
+                Login / Create Account
+            </button>
         </div>
     </main>
 </div>
@@ -56,10 +53,12 @@
                     <label for="login-username">Username:</label>
                     <input type="text" id="login-username" name="username" required>
                 </div>
+
                 <div class="form-group">
                     <label for="login-password">Password:</label>
                     <input type="password" id="login-password" name="password" required>
                 </div>
+
                 <button type="submit" class="btn-primary">Login</button>
             </form>
         </div>
@@ -67,6 +66,7 @@
         <!-- Create Account Form -->
         <div class="tab-content" id="create-content">
             <form id="create-account-form" onsubmit="handleCreateAccount(event)">
+
                 <div class="form-group">
                     <label for="title">Title:</label>
                     <select id="title" name="title" required>
@@ -111,33 +111,118 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="institutions-container">Associated Institutions (optional):</label>
-                    <div id="institutions-container" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 0.5rem; border-radius: 4px;">
-                        <!-- Checkboxes will be loaded dynamically -->
+                    <label for="institutions-container">
+                        Associated Institutions (optional):
+                    </label>
+                    <div id="institutions-container"
+                         class="institutions-scroll-container">
+                        <!-- Checkboxes loaded dynamically -->
                     </div>
-                    <small style="display: block; margin-top: 0.25rem; color: #666;">Select as many institutions as you want</small>
+                    <small class="institutions-help-text">
+                        Select as many institutions as you want
+                    </small>
                 </div>
 
-                <button type="submit" class="btn-primary">Create Account</button>
+                <button type="submit" class="btn-primary">
+                    Create Account
+                </button>
             </form>
         </div>
     </div>
 </div>
 
-<!-- Search Results Modal -->
-<div id="search-modal-overlay" class="modal-overlay hidden">
-    <div class="modal-content search-modal">
-        <button class="modal-close" onclick="closeSearchModal()">&times;</button>
-        <h2>Search Results</h2>
-        <div id="series-results-section">
-            <h3>Series Results</h3>
-            <div id="series-results-list"></div>
+<!-- Database Control Floating Button -->
+<button id="db-control-btn"
+        class="db-control-floating-btn"
+        onclick="openDbControlModal()"
+        title="Database Controls">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+        <path d="M9 9h6v6H9z"></path>
+    </svg>
+</button>
+
+<!-- Database Control Modal -->
+<div id="db-control-modal" class="db-control-modal-overlay hidden">
+    <div class="db-control-modal-content">
+        <button class="db-control-modal-close"
+                onclick="closeDbControlModal()">
+            &times;
+        </button>
+
+        <!-- Password Section -->
+        <div id="db-control-password-section">
+            <h3 class="db-control-title">Database Control</h3>
+            <p class="db-control-subtitle">
+                Enter admin password to manage database
+            </p>
+
+            <div class="form-group">
+                <label for="db-control-password">Admin Password:</label>
+                <input type="password"
+                       id="db-control-password"
+                       placeholder="Enter admin password"
+                       autofocus>
+            </div>
+
+            <div class="db-control-button-row">
+                <button id="db-control-password-submit"
+                        class="btn-primary db-control-btn-flex">
+                    Continue
+                </button>
+                <button onclick="closeDbControlModal()"
+                        class="btn-secondary db-control-btn-flex">
+                    Cancel
+                </button>
+            </div>
+
+            <p id="db-control-password-error"
+               class="db-control-error"></p>
         </div>
-        <div id="recording-results-section">
-            <h3>Recording Results</h3>
-            <div id="recording-results-list"></div>
+
+        <!-- Database Control Section -->
+        <div id="db-control-content-section"
+             class="hidden-section">
+
+            <h3 class="db-control-title">Database Control</h3>
+
+            <div>
+                <p class="db-control-status-text">
+                    Status:
+                    <span id="db-control-status"
+                          class="db-control-status-label">
+                        Checking...
+                    </span>
+                </p>
+            </div>
+
+            <div class="db-control-button-row-spaced">
+                <button id="db-control-check-btn"
+                        class="btn-primary db-control-btn-flex db-control-btn-small">
+                    Refresh
+                </button>
+
+                <button id="db-control-start-btn"
+                        class="btn-primary btn-success
+                               db-control-btn-flex db-control-btn-small"
+                        disabled>
+                    Start
+                </button>
+
+                <button id="db-control-stop-btn"
+                        class="btn-primary btn-danger
+                               db-control-btn-flex db-control-btn-small"
+                        disabled>
+                    Stop
+                </button>
+            </div>
+
+            <p id="db-control-message"
+               class="db-control-message"></p>
         </div>
     </div>
 </div>
+
 </body>
 </html>

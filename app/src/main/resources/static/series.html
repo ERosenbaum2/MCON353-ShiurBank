@@ -7,6 +7,7 @@
   <link rel="icon" type="image/png" href="/ShiurBank Logo No Words.png">
   <link rel="stylesheet" href="/common-styles.css">
   <link rel="stylesheet" href="/dashboard-styles.css">
+  <link rel="stylesheet" href="/series.css">
   <script src="/series.js" defer></script>
 </head>
 <body>
@@ -25,17 +26,228 @@
 <main class="hidden" id="series-main">
   <div class="dashboard-content">
     <h2 id="series-title">Loading series...</h2>
-    <button type="button" class="btn-secondary" onclick="window.location.href='/dashboard.html'" style="margin: 0.5rem 0 1rem 0;">
-      Back to Dashboard
-    </button>
+
+    <!-- Button group for Back, Subscribe, and Upload buttons -->
+    <div class="button-group">
+      <button type="button" class="btn-secondary" onclick="window.location.href='/dashboard.html'">
+        Back to Dashboard
+      </button>
+
+      <button type="button" id="subscribe-btn" onclick="handleSubscribeClick()">
+        Subscribe
+      </button>
+
+      <!-- Upload button (only visible for gabbaim) -->
+      <button type="button" id="upload-shiur-btn" class="btn-primary hidden" onclick="openUploadModal()">
+        Upload Shiur
+      </button>
+    </div>
+
     <p id="series-meta"></p>
     <p id="series-description"></p>
 
     <hr style="margin:2rem 0;">
 
-    <h3>Shiurim in this Series</h3>
-    <p>(Coming soon.)</p>
+    <div class="shiurim-section">
+      <div class="shiurim-header">
+        <h3>Shiurim in this Series</h3>
+        <div class="sort-controls">
+          <label for="sort-select">Sort by:</label>
+          <select id="sort-select" onchange="loadRecordings()">
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="title">Title (A-Z)</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="recordings-loading" class="loading hidden">Loading shiurim...</div>
+      <div id="recordings-error" class="error hidden"></div>
+      <div id="recordings-list"></div>
+    </div>
+
+    <hr style="margin:2rem 0;">
+
+    <!-- Participants Section (only visible for gabbaim) -->
+    <div id="participants-section" class="participants-section hidden">
+      <h3>Series Participants</h3>
+      <div id="participants-loading" class="loading hidden">Loading participants...</div>
+      <div id="participants-error" class="error hidden"></div>
+      <div id="participants-list"></div>
+    </div>
+
+    <!-- Pending Participants Section (only visible for gabbaim) -->
+    <div id="pending-participants-section" class="pending-section hidden">
+      <h3>Pending Participants</h3>
+      <div id="pending-participants-loading" class="loading hidden">Loading pending participants...</div>
+      <div id="pending-participants-error" class="error hidden"></div>
+      <div id="pending-participants-list"></div>
+    </div>
   </div>
 </main>
+
+<!-- Subscribe Modal -->
+<div id="subscribe-modal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Subscribe to Series</h2>
+      <button class="close-modal" onclick="closeSubscribeModal()">&times;</button>
+    </div>
+
+    <div class="modal-body subscription-modal-body">
+      <p>Please select how often you want to receive notifications:</p>
+
+      <div class="subscription-form-group">
+        <label for="subscription-type-select">Notification Frequency</label>
+        <select id="subscription-type-select">
+          <!-- Options will be populated dynamically -->
+        </select>
+      </div>
+
+      <div class="subscription-warning">
+        <strong>Note:</strong> Only "On upload" notifications are currently supported. Other options are not yet available.
+      </div>
+
+      <div class="subscription-info">
+        After subscribing, you will receive a confirmation email from AWS. Please check your inbox (and spam folder) and click the confirmation link to activate your subscription.
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn-cancel" onclick="closeSubscribeModal()">Cancel</button>
+      <button type="button" class="btn-confirm" onclick="confirmSubscribe()">Subscribe</button>
+    </div>
+  </div>
+</div>
+
+<!-- Unsubscribe Modal -->
+<div id="unsubscribe-modal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Unsubscribe from Series</h2>
+      <button class="close-modal" onclick="closeUnsubscribeModal()">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="unsubscribe-warning">
+        <p>Are you sure you want to unsubscribe from this series?</p>
+        <p>You will no longer receive email notifications when new shiurim are uploaded.</p>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn-cancel" onclick="closeUnsubscribeModal()">Cancel</button>
+      <button type="button" class="btn-confirm danger" onclick="confirmUnsubscribe()">Unsubscribe</button>
+    </div>
+  </div>
+</div>
+
+<!-- Upload Modal -->
+<div id="upload-modal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Upload Shiur</h2>
+      <button class="close-modal" onclick="closeUploadModal()">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <div id="success-message" class="success-message"></div>
+      <div id="error-message" class="error-message"></div>
+
+      <form id="upload-form">
+        <div class="form-group">
+          <label for="title">Title <span class="required">*</span></label>
+          <input type="text" id="title" name="title" required maxlength="255">
+        </div>
+
+        <div class="form-group">
+          <label for="recorded-at">Date and Time Recorded <span class="required">*</span></label>
+          <input type="datetime-local" id="recorded-at" name="recordedAt" required>
+        </div>
+
+        <div class="form-group">
+          <label>Keywords <span class="required">*</span></label>
+          <small>Enter 6 keywords to help with search capabilities</small>
+          <div class="keywords-grid">
+            <input type="text" id="keyword1" name="keyword1" placeholder="Keyword 1" required maxlength="100">
+            <input type="text" id="keyword2" name="keyword2" placeholder="Keyword 2" required maxlength="100">
+            <input type="text" id="keyword3" name="keyword3" placeholder="Keyword 3" required maxlength="100">
+            <input type="text" id="keyword4" name="keyword4" placeholder="Keyword 4" required maxlength="100">
+            <input type="text" id="keyword5" name="keyword5" placeholder="Keyword 5" required maxlength="100">
+            <input type="text" id="keyword6" name="keyword6" placeholder="Keyword 6" required maxlength="100">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="description">Description</label>
+          <textarea id="description" name="description" rows="4"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Audio File <span class="required">*</span></label>
+          <small>Max file size: 1GB. Supported formats: MP3, WAV, M4A, OGG, FLAC, AAC, OPUS, and more.</small>
+          <div class="file-input-wrapper">
+            <label for="audio-file" class="file-input-label">
+              📁 Choose Audio File
+            </label>
+            <input type="file" id="audio-file" name="audioFile" accept="audio/*" required>
+          </div>
+          <div id="file-name"></div>
+        </div>
+
+        <div id="progress-container" class="progress-container">
+          <div class="progress-bar-wrapper">
+            <div id="progress-bar" class="progress-bar">0%</div>
+          </div>
+          <div id="progress-text" class="progress-text">Uploading...</div>
+        </div>
+      </form>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn-cancel" onclick="closeUploadModal()">Cancel</button>
+      <button type="button" id="submit-upload-btn" class="btn-upload" onclick="submitUpload()">Upload Shiur</button>
+    </div>
+  </div>
+</div>
+
+<!-- Remove Participant Confirmation Modal -->
+<div id="remove-participant-modal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Remove Participant</h2>
+      <button class="close-modal" onclick="closeRemoveParticipantModal()">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <p id="remove-participant-message"></p>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn-cancel" onclick="closeRemoveParticipantModal()">Cancel</button>
+      <button type="button" class="btn-confirm danger" onclick="confirmRemoveParticipant()">Remove Participant</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Gabbai Confirmation Modal -->
+<div id="add-gabbai-modal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Add Additional Gabbai</h2>
+      <button class="close-modal" onclick="closeAddGabbaiModal()">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <p id="add-gabbai-message"></p>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn-cancel" onclick="closeAddGabbaiModal()">Cancel</button>
+      <button type="button" class="btn-confirm" onclick="confirmAddGabbai()">Add as Gabbai</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

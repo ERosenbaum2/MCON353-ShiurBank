@@ -38,3 +38,19 @@ application {
 bootRun {
     jvmArgs = ["--enable-native-access=ALL-UNNAMED"]
 }
+
+tasks.register('startDB', JavaExec) {
+    group = "database"
+    description = "Start the AWS RDS database instance"
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'testDB.StartDBInstance'
+    workingDir = project.rootDir
+}
+
+tasks.register('stopDB', JavaExec) {
+    group = "database"
+    description = "Stop the AWS RDS database instance"
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'testDB.StopDBInstance'
+    workingDir = project.rootDir
+}

@@ -1,17 +1,18 @@
 package springContents.controller;
 
 import jakarta.servlet.http.HttpSession;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import springContents.dao.RecordingDAO;
 import springContents.dao.ShiurSeriesDAO;
 import springContents.model.User;
+import springContents.service.S3Service;
 import springContents.service.SNSService;
 
 import java.time.LocalDateTime;
@@ -22,161 +23,244 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/recordings")
+@RequestMapping("/api")
 public class RecordingController {
+
+    private static final Logger logger = LoggerFactory.getLogger(RecordingController.class);
+    private static final long MAX_FILE_SIZE = 1024L * 1024L * 1024L; // 1GB in bytes
 
     private final RecordingDAO recordingDAO;
     private final ShiurSeriesDAO shiurSeriesDAO;
+    private final S3Service s3Service;
     private final SNSService snsService;
 
     @Autowired
     public RecordingController(RecordingDAO recordingDAO,
-                              ShiurSeriesDAO shiurSeriesDAO,
-                              SNSService snsService) {
+                               ShiurSeriesDAO shiurSeriesDAO,
+                               S3Service s3Service,
+                               SNSService snsService) {
         this.recordingDAO = recordingDAO;
         this.shiurSeriesDAO = shiurSeriesDAO;
+        this.s3Service = s3Service;
         this.snsService = snsService;
     }
 
-    @PostMapping
-    @Transactional
-    public ResponseEntity<Map<String, Object>> createRecording(@RequestBody Map<String, Object> body,
-                                                              HttpSession session) {
-        Map<String, Object> resp = new HashMap<>();
-        User current = (User) session.getAttribute("user");
-        if (current == null) {
-            resp.put("success", false);
-            resp.put("message", "Not logged in.");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(resp);
-        }
+    @GetMapping("/series/{seriesId}/recordings")
+    public ResponseEntity<Map<String, Object>> getRecordings(
+            @PathVariable Long seriesId,
+            @RequestParam(value = "sort", defaultValue = "newest") String sortOrder,
+            HttpSession session) {
 
-        // Parse request body
-        Long seriesId = toLong(body.get("seriesId"));
-        String s3FilePath = (String) body.get("s3FilePath");
-        String recordedAtStr = (String) body.get("recordedAt");
-        String keyword1 = (String) body.get("keyword1");
-        String keyword2 = (String) body.get("keyword2");
-        String keyword3 = (String) body.get("keyword3");
-        String keyword4 = (String) body.get("keyword4");
-        String keyword5 = (String) body.get("keyword5");
-        String keyword6 = (String) body.get("keyword6");
-        String description = (String) body.get("description");
+        Map<String, Object> response = new HashMap<>();
 
-        // Validate required fields
-        if (seriesId == null || s3FilePath == null || s3FilePath.trim().isEmpty() ||
-            recordedAtStr == null || recordedAtStr.trim().isEmpty() ||
-            keyword1 == null || keyword1.trim().isEmpty() ||
-            keyword2 == null || keyword2.trim().isEmpty() ||
-            keyword3 == null || keyword3.trim().isEmpty() ||
-            keyword4 == null || keyword4.trim().isEmpty() ||
-            keyword5 == null || keyword5.trim().isEmpty() ||
-            keyword6 == null || keyword6.trim().isEmpty()) {
-            resp.put("success", false);
-            resp.put("message", "Missing required fields.");
-            return ResponseEntity.badRequest().body(resp);
-        }
-
-        // Parse recordedAt
-        LocalDateTime recordedAt;
         try {
-            // Try ISO format first
-            recordedAt = LocalDateTime.parse(recordedAtStr);
-        } catch (DateTimeParseException e) {
-            try {
-                // Try common date formats
-                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-                recordedAt = LocalDateTime.parse(recordedAtStr, formatter);
-            } catch (DateTimeParseException e2) {
-                resp.put("success", false);
-                resp.put("message", "Invalid date format for recordedAt. Use ISO format or yyyy-MM-dd HH:mm:ss");
-                return ResponseEntity.badRequest().body(resp);
+            // Check authentication
+            User user = (User) session.getAttribute("user");
+            if (user == null) {
+                response.put("success", false);
+                response.put("message", "Not logged in.");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
             }
-        }
 
-        // Create recording
-        long recordingId;
-        try {
-            recordingId = recordingDAO.createRecording(
-                    seriesId,
-                    s3FilePath,
-                    recordedAt,
-                    keyword1,
-                    keyword2,
-                    keyword3,
-                    keyword4,
-                    keyword5,
-                    keyword6,
-                    description
-            );
+            // Get recordings
+            List<Map<String, Object>> recordings = recordingDAO.getRecordingsForSeries(seriesId, sortOrder);
+
+            response.put("success", true);
+            response.put("recordings", recordings);
+            return ResponseEntity.ok(response);
+
         } catch (Exception e) {
-            resp.put("success", false);
-            resp.put("message", "Error creating recording: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(resp);
+            logger.error("Error fetching recordings for series {}: {}", seriesId, e.getMessage(), e);
+            response.put("success", false);
+            response.put("message", "Failed to fetch recordings.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
+    }
 
-        // Get series details and subscribers
+    @PostMapping("/series/{seriesId}/recordings")
+    @Transactional
+    public ResponseEntity<Map<String, Object>> uploadRecording(
+            @PathVariable Long seriesId,
+            @RequestParam("title") String title,
+            @RequestParam("recordedAt") String recordedAtStr,
+            @RequestParam("keyword1") String keyword1,
+            @RequestParam("keyword2") String keyword2,
+            @RequestParam("keyword3") String keyword3,
+            @RequestParam("keyword4") String keyword4,
+            @RequestParam("keyword5") String keyword5,
+            @RequestParam("keyword6") String keyword6,
+            @RequestParam(value = "description", required = false) String description,
+            @RequestParam("audioFile") MultipartFile audioFile,
+            HttpSession session) {
+
+        Map<String, Object> response = new HashMap<>();
+
         try {
-            Map<String, Object> seriesDetails = shiurSeriesDAO.getSeriesDetails(seriesId);
-            List<String> subscriberEmails = shiurSeriesDAO.getSubscriberEmailsForSeries(seriesId);
+            // Check authentication
+            User user = (User) session.getAttribute("user");
+            if (user == null) {
+                response.put("success", false);
+                response.put("message", "Not logged in.");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            }
 
-            if (seriesDetails != null && !subscriberEmails.isEmpty()) {
-                // Subscribe each subscriber email to the subscriber topic (if not already subscribed)
-                // Note: SNS will handle duplicate subscriptions gracefully
-                for (String email : subscriberEmails) {
-                    try {
-                        snsService.subscribeEmail(snsService.getSubscriberTopicArn(), email);
-                    } catch (Exception e) {
-                        // Log but continue - subscription might already exist
-                        System.err.println("Warning: Could not subscribe email " + email + ": " + e.getMessage());
+            // Check if user is a gabbai for this series
+            if (!shiurSeriesDAO.isGabbaiForSeries(user.getUserId(), seriesId)) {
+                response.put("success", false);
+                response.put("message", "You do not have permission to upload to this series.");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+            }
+
+            // Validate file
+            if (audioFile.isEmpty()) {
+                response.put("success", false);
+                response.put("message", "No file provided.");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            // Check file size
+            if (audioFile.getSize() > MAX_FILE_SIZE) {
+                response.put("success", false);
+                response.put("message", "File size exceeds 1GB limit.");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            // Validate file type
+            String originalFilename = audioFile.getOriginalFilename();
+            if (originalFilename == null || !isValidAudioFile(originalFilename)) {
+                response.put("success", false);
+                response.put("message", "Invalid file type. Please upload an audio file.");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            // Get file extension
+            String fileExtension = getFileExtension(originalFilename);
+
+            // Parse recorded date/time
+            LocalDateTime recordedAt;
+            try {
+                recordedAt = LocalDateTime.parse(recordedAtStr, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+            } catch (DateTimeParseException e) {
+                response.put("success", false);
+                response.put("message", "Invalid date/time format.");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            // Validate required fields
+            if (title == null || title.trim().isEmpty() ||
+                    keyword1 == null || keyword1.trim().isEmpty() ||
+                    keyword2 == null || keyword2.trim().isEmpty() ||
+                    keyword3 == null || keyword3.trim().isEmpty() ||
+                    keyword4 == null || keyword4.trim().isEmpty() ||
+                    keyword5 == null || keyword5.trim().isEmpty() ||
+                    keyword6 == null || keyword6.trim().isEmpty()) {
+                response.put("success", false);
+                response.put("message", "All fields except description are required.");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            // Create recording in database (get ID first for S3 path)
+            long recordingId = recordingDAO.createRecording(
+                    seriesId,
+                    "temp", // Temporary placeholder, will be updated
+                    recordedAt,
+                    title.trim(),
+                    keyword1.trim(),
+                    keyword2.trim(),
+                    keyword3.trim(),
+                    keyword4.trim(),
+                    keyword5.trim(),
+                    keyword6.trim(),
+                    description != null ? description.trim() : null
+            );
+
+            // Upload file to S3
+            String s3FilePath;
+            try {
+                s3FilePath = s3Service.uploadAudioFile(seriesId, recordingId, audioFile, fileExtension);
+            } catch (Exception e) {
+                logger.error("Failed to upload file to S3 for recording {}: {}", recordingId, e.getMessage(), e);
+                throw new RuntimeException("Failed to upload audio file to S3: " + e.getMessage(), e);
+            }
+
+            // Update recording with actual S3 path
+            recordingDAO.updateS3FilePath(recordingId, s3FilePath);
+
+            logger.info("Successfully created recording {} for series {} by user {}",
+                    recordingId, seriesId, user.getUserId());
+
+            // Send notification to subscribers
+            try {
+                String topicArn = shiurSeriesDAO.getSeriesTopicArn(seriesId);
+                if (topicArn != null && !topicArn.trim().isEmpty()) {
+                    // Get series details for the notification
+                    Map<String, Object> seriesDetails = shiurSeriesDAO.getSeriesDetails(seriesId);
+
+                    if (seriesDetails != null) {
+                        String rebbiName = (String) seriesDetails.get("rebbiName");
+                        String topicName = (String) seriesDetails.get("topicName");
+                        String seriesDescription = (String) seriesDetails.get("description");
+
+                        // Format the recording date for the notification
+                        String formattedDate = recordedAt.format(DateTimeFormatter.ofPattern("MMMM d, yyyy"));
+
+                        snsService.notifyNewRecording(
+                                topicArn,
+                                title.trim(),
+                                rebbiName,
+                                topicName,
+                                seriesDescription,
+                                formattedDate
+                        );
+                        logger.info("Sent notification for new recording {} in series {}",
+                                recordingId, seriesId);
                     }
                 }
-
-                // Publish notification to subscriber topic
-                String subject = "New Recording Available";
-                String message = String.format(
-                    "A new recording has been uploaded to a series you're subscribed to:\n\n" +
-                    "Series: %s\n" +
-                    "Topic: %s\n" +
-                    "Rebbi: %s\n" +
-                    "Recording ID: %d\n" +
-                    "S3 File Path: %s\n" +
-                    "Recorded At: %s\n" +
-                    "%s\n" +
-                    "Keywords: %s, %s, %s, %s, %s, %s",
-                    seriesDetails.get("description"),
-                    seriesDetails.get("topicName"),
-                    seriesDetails.get("rebbiName"),
-                    recordingId,
-                    s3FilePath,
-                    recordedAt.toString(),
-                    description != null ? "Description: " + description + "\n" : "",
-                    keyword1, keyword2, keyword3, keyword4, keyword5, keyword6
-                );
-                snsService.publishToSubscriberTopic(message, subject);
+            } catch (Exception e) {
+                logger.error("Failed to send notification for recording {}, but recording was created",
+                        recordingId, e);
+                // Don't fail the operation if notification fails
             }
-        } catch (Exception e) {
-            // Log error but don't fail the request
-            // Notification failure shouldn't prevent recording creation
-            System.err.println("Failed to send subscriber notification: " + e.getMessage());
-        }
 
-        resp.put("success", true);
-        resp.put("recordingId", recordingId);
-        return ResponseEntity.ok(resp);
+            response.put("success", true);
+            response.put("recordingId", recordingId);
+            response.put("message", "Shiur uploaded successfully!");
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            logger.error("Error uploading recording for series {}: {}", seriesId, e.getMessage(), e);
+            response.put("success", false);
+            response.put("message", "An error occurred while uploading the shiur. Please try again.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
     }
 
-    private Long toLong(Object value) {
-        if (value == null) {
-            return null;
+    /**
+     * Check if the file is a valid audio file based on extension
+     */
+    private boolean isValidAudioFile(String filename) {
+        String lowerFilename = filename.toLowerCase();
+        return lowerFilename.endsWith(".mp3") ||
+                lowerFilename.endsWith(".wav") ||
+                lowerFilename.endsWith(".ogg") ||
+                lowerFilename.endsWith(".m4a") ||
+                lowerFilename.endsWith(".opus") ||
+                lowerFilename.endsWith(".flac") ||
+                lowerFilename.endsWith(".aac") ||
+                lowerFilename.endsWith(".webm") ||
+                lowerFilename.endsWith(".aiff") ||
+                lowerFilename.endsWith(".aif") ||
+                lowerFilename.endsWith(".wma");
+    }
+
+    /**
+     * Extract file extension from filename
+     */
+    private String getFileExtension(String filename) {
+        int lastDot = filename.lastIndexOf('.');
+        if (lastDot > 0 && lastDot < filename.length() - 1) {
+            return filename.substring(lastDot + 1).toLowerCase();
         }
-        if (value instanceof Number) {
-            return ((Number) value).longValue();
-        }
-        try {
-            return Long.parseLong(value.toString());
-        } catch (NumberFormatException ex) {
-            return null;
-        }
+        return "mp3"; // Default to mp3 if no extension found
     }
 }
-

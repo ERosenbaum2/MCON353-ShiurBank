@@ -53,7 +53,7 @@ public class AdminDAO {
             "       t.name AS topic_name, " +
             "       CONCAT(r.title, ' ', r.fname, ' ', r.lname) AS rebbi_name, " +
             "       i.name AS inst_name " +
-            "FROM pending_permission pp " +
+            "FROM series_pending_approval pp " +
             "JOIN shiur_series s ON pp.series_id = s.series_id " +
             "JOIN topics t ON s.topic_id = t.topic_id " +
             "JOIN rebbeim r ON s.rebbi_id = r.rebbi_id " +
@@ -89,7 +89,7 @@ public class AdminDAO {
      * Remove a pending permission by pending_id
      */
     public void verifyPendingPermission(Long pendingId) {
-        String sql = "DELETE FROM pending_permission WHERE pending_id = ?";
+        String sql = "DELETE FROM series_pending_approval WHERE pending_id = ?";
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -123,7 +123,7 @@ public class AdminDAO {
      * Add a pending permission entry for a series
      */
     public void addPendingPermission(Long seriesId) {
-        String sql = "INSERT INTO pending_permission (series_id) VALUES (?) " +
+        String sql = "INSERT INTO series_pending_approval (series_id) VALUES (?) " +
                      "ON DUPLICATE KEY UPDATE series_id = series_id";
 
         try (Connection conn = dataSource.getConnection();

@@ -39,6 +39,7 @@ CREATE TABLE shiur_series (
     requires_permission    BOOLEAN NOT NULL DEFAULT FALSE,
     inst_id                BIGINT NOT NULL,
     description            TEXT NULL,
+    sns_topic_arn          VARCHAR(512) NULL,
     CONSTRAINT fk_series_rebbi FOREIGN KEY (rebbi_id) REFERENCES rebbeim(rebbi_id) ON DELETE RESTRICT,
     CONSTRAINT fk_series_topic FOREIGN KEY (topic_id) REFERENCES topics(topic_id) ON DELETE RESTRICT,
     CONSTRAINT fk_series_inst FOREIGN KEY (inst_id) REFERENCES institutions(inst_id) ON DELETE RESTRICT
@@ -57,6 +58,7 @@ CREATE TABLE shiur_recordings (
     recording_id   BIGINT AUTO_INCREMENT PRIMARY KEY,
     series_id      BIGINT NOT NULL,
     s3_file_path   TEXT NOT NULL,
+    title          VARCHAR(255) NOT NULL,
     recorded_at    DATETIME NOT NULL,
     keyword_1      VARCHAR(100) NOT NULL,
     keyword_2      VARCHAR(100) NOT NULL,
@@ -105,6 +107,7 @@ CREATE TABLE subscribers (
     user_id              BIGINT NOT NULL,
     series_id            BIGINT NOT NULL,
     subscription_type_id BIGINT NOT NULL,
+    sns_subscription_arn VARCHAR(512) NULL,
     CONSTRAINT fk_sub_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
     CONSTRAINT fk_sub_series FOREIGN KEY (series_id) REFERENCES shiur_series(series_id) ON DELETE CASCADE,
     CONSTRAINT fk_sub_type FOREIGN KEY (subscription_type_id) REFERENCES subscriber_types(type_id) ON DELETE RESTRICT,
@@ -120,7 +123,7 @@ CREATE TABLE favorite_shiurim (
     CONSTRAINT uq_favorite UNIQUE (user_id, series_id)
 ) ENGINE=InnoDB;
 
-CREATE TABLE pending_permission (
+CREATE TABLE series_pending_approval (
     pending_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     series_id  BIGINT NOT NULL,
 
@@ -142,4 +145,23 @@ CREATE TABLE admins (
         REFERENCES users(user_id)
         ON DELETE CASCADE
         ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE users_pending_approval_to_series (
+    pending_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id    BIGINT NOT NULL,
+    series_id  BIGINT NOT NULL,
+
+    CONSTRAINT uq_user_series_pending
+        UNIQUE (user_id, series_id),
+
+    CONSTRAINT fk_pending_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(user_id)
+        ON DELETE RESTRICT,
+
+    CONSTRAINT fk_pending_series_for_user
+        FOREIGN KEY (series_id)
+        REFERENCES shiur_series(series_id)
+        ON DELETE RESTRICT
 ) ENGINE=InnoDB;

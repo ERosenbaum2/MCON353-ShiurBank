@@ -207,11 +207,18 @@ async function handleCreateSeries(event) {
     }
 
     const seriesId = data.seriesId;
-    window.location.href = `/series/${encodeURIComponent(seriesId)}`;
+    const needsVerification = data.needsVerification;
+
+    // Redirect based on verification status
+    if (needsVerification) {
+      // Series is pending approval, redirect to dashboard
+      window.location.href = '/dashboard.html';
+    } else {
+      // Series was automatically approved, redirect to series page
+      window.location.href = `/series/${encodeURIComponent(seriesId)}`;
+    }
   } catch (error) {
     console.error('Error creating series', error);
     alert('An error occurred while creating the series.');
   }
 }
-
-
