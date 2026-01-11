@@ -13,9 +13,19 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;
 
+/**
+ * Utility class for stopping an AWS RDS database instance.
+ * Reads database instance identifier from properties file and stops the instance.
+ */
 public class StopDBInstance {
     private static final Logger logger = LoggerFactory.getLogger(StopDBInstance.class);
 
+    /**
+     * Main method to stop the RDS database instance.
+     *
+     * @param args command line arguments (not used)
+     * @throws IOException if the properties file cannot be read
+     */
     public static void main(String[] args) throws IOException {
         Properties credentials = new Properties();
         credentials.load(new FileInputStream("app/src/main/resources/dbcredentials.properties"));
@@ -35,6 +45,13 @@ public class StopDBInstance {
         }
     }
 
+    /**
+     * Stops the specified RDS database instance.
+     *
+     * @param rdsClient the RDS client to use
+     * @param dbInstanceIdentifier the database instance identifier to stop
+     * @throws RuntimeException if stopping the instance fails
+     */
     public static void stopSpecificDBInstance(RdsClient rdsClient, String dbInstanceIdentifier) {
         try {
             StopDbInstanceRequest stopDbInstanceRequest = StopDbInstanceRequest.builder()

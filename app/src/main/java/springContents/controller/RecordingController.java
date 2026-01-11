@@ -22,6 +22,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * REST controller for recording management operations.
+ * Handles recording creation, retrieval, file uploads to S3, and SNS notifications.
+ */
 @RestController
 @RequestMapping("/api")
 public class RecordingController {
@@ -34,6 +38,14 @@ public class RecordingController {
     private final S3Service s3Service;
     private final SNSService snsService;
 
+    /**
+     * Constructs a new RecordingController with the specified dependencies.
+     *
+     * @param recordingDAO the RecordingDAO for recording operations
+     * @param shiurSeriesDAO the ShiurSeriesDAO for series operations
+     * @param s3Service the S3Service for file storage
+     * @param snsService the SNSService for notifications
+     */
     @Autowired
     public RecordingController(RecordingDAO recordingDAO,
                                ShiurSeriesDAO shiurSeriesDAO,
@@ -45,6 +57,15 @@ public class RecordingController {
         this.snsService = snsService;
     }
 
+    /**
+     * Retrieves all recordings for a series with optional sorting.
+     *
+     * @param seriesId the series ID
+     * @param sortOrder the sort order: "newest", "oldest", or "title"
+     * @param session the HTTP session for authentication
+     * @return a response map with recordings list, or error message
+     * @throws RuntimeException if retrieval fails
+     */
     @GetMapping("/series/{seriesId}/recordings")
     public ResponseEntity<Map<String, Object>> getRecordings(
             @PathVariable Long seriesId,
@@ -77,6 +98,24 @@ public class RecordingController {
         }
     }
 
+    /**
+     * Uploads a new recording for a series with file upload to S3 and SNS notification.
+     *
+     * @param seriesId the series ID
+     * @param title the recording title
+     * @param recordedAtStr the recording date/time as a string
+     * @param keyword1 the first keyword
+     * @param keyword2 the second keyword
+     * @param keyword3 the third keyword
+     * @param keyword4 the fourth keyword
+     * @param keyword5 the fifth keyword
+     * @param keyword6 the sixth keyword
+     * @param description the recording description
+     * @param file the audio file to upload
+     * @param session the HTTP session for authentication
+     * @return a response map with success status and recording ID, or error message
+     * @throws RuntimeException if upload fails
+     */
     @PostMapping("/series/{seriesId}/recordings")
     @Transactional
     public ResponseEntity<Map<String, Object>> uploadRecording(

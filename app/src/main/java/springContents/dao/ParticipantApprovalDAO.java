@@ -13,18 +13,33 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Data Access Object for participant approval operations.
+ * Handles database operations related to pending participant applications,
+ * participant status checking, and gabbai information retrieval.
+ */
 @Repository
 public class ParticipantApprovalDAO {
 
     private final DataSource dataSource;
 
+    /**
+     * Constructs a new ParticipantApprovalDAO with the specified data source.
+     *
+     * @param dataSource the data source for database connections
+     */
     @Autowired
     public ParticipantApprovalDAO(DataSource dataSource) {
         this.dataSource = dataSource;
     }
 
     /**
-     * Check if a user already has a pending application for a series
+     * Checks if a user already has a pending application for a series.
+     *
+     * @param userId the user ID to check
+     * @param seriesId the series ID to check
+     * @return true if there is a pending application, false otherwise
+     * @throws RuntimeException if a database error occurs
      */
     public boolean hasPendingApplication(Long userId, Long seriesId) {
         String sql = "SELECT COUNT(*) FROM users_pending_approval_to_series WHERE user_id = ? AND series_id = ?";
@@ -45,7 +60,12 @@ public class ParticipantApprovalDAO {
     }
 
     /**
-     * Check if a user is already a participant in a series
+     * Checks if a user is already a participant in a series.
+     *
+     * @param userId the user ID to check
+     * @param seriesId the series ID to check
+     * @return true if the user is a participant, false otherwise
+     * @throws RuntimeException if a database error occurs
      */
     public boolean isParticipant(Long userId, Long seriesId) {
         String sql = "SELECT COUNT(*) FROM shiur_participants WHERE user_id = ? AND series_id = ?";
@@ -66,7 +86,11 @@ public class ParticipantApprovalDAO {
     }
 
     /**
-     * Add a user to the pending approval table
+     * Adds a user to the pending approval table for a series.
+     *
+     * @param userId the user ID to add
+     * @param seriesId the series ID
+     * @throws RuntimeException if a database error occurs
      */
     public void addPendingApproval(Long userId, Long seriesId) {
         String sql = "INSERT INTO users_pending_approval_to_series (user_id, series_id) VALUES (?, ?)";
@@ -82,7 +106,11 @@ public class ParticipantApprovalDAO {
     }
 
     /**
-     * Remove a pending approval entry
+     * Removes a pending approval entry for a user and series.
+     *
+     * @param userId the user ID
+     * @param seriesId the series ID
+     * @throws RuntimeException if a database error occurs
      */
     public void removePendingApproval(Long userId, Long seriesId) {
         String sql = "DELETE FROM users_pending_approval_to_series WHERE user_id = ? AND series_id = ?";
@@ -98,7 +126,11 @@ public class ParticipantApprovalDAO {
     }
 
     /**
-     * Get all pending participants for a series
+     * Retrieves all pending participants for a series.
+     *
+     * @param seriesId the series ID
+     * @return a list of pending participant information maps
+     * @throws RuntimeException if a database error occurs
      */
     public List<Map<String, Object>> getPendingParticipants(Long seriesId) {
         String sql = "SELECT p.pending_id, p.user_id, u.username, u.title, u.fname, u.lname, u.email " +
@@ -132,7 +164,11 @@ public class ParticipantApprovalDAO {
     }
 
     /**
-     * Get gabbai information for a series (name and email)
+     * Retrieves gabbai information for a series including name and email.
+     *
+     * @param seriesId the series ID
+     * @return a list of gabbai information maps
+     * @throws RuntimeException if a database error occurs
      */
     public List<Map<String, Object>> getGabbaiInfo(Long seriesId) {
         String sql = "SELECT u.user_id, u.username, u.title, u.fname, u.lname, u.email " +
@@ -165,7 +201,11 @@ public class ParticipantApprovalDAO {
     }
 
     /**
-     * Get series details including requires_permission flag
+     * Retrieves series details including the requires_permission flag.
+     *
+     * @param seriesId the series ID
+     * @return a map containing series application information, or null if not found
+     * @throws RuntimeException if a database error occurs
      */
     public Map<String, Object> getSeriesApplicationInfo(Long seriesId) {
         String sql = "SELECT s.series_id, s.requires_permission, s.description, " +

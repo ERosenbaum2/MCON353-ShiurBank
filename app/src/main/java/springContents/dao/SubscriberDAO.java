@@ -13,19 +13,31 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Data Access Object for Subscriber entities.
+ * Handles database operations related to SNS subscriptions for series notifications,
+ * including subscription management, type retrieval, and subscriber queries.
+ */
 @Repository
 public class SubscriberDAO {
 
     private final DataSource dataSource;
 
+    /**
+     * Constructs a new SubscriberDAO with the specified data source.
+     *
+     * @param dataSource the data source for database connections
+     */
     @Autowired
     public SubscriberDAO(DataSource dataSource) {
         this.dataSource = dataSource;
     }
 
     /**
-     * Get all subscriber types
-     * @return List of subscriber type maps with typeId and name
+     * Retrieves all subscriber types from the database.
+     *
+     * @return a list of subscriber type maps with typeId and name
+     * @throws RuntimeException if a database error occurs
      */
     public List<Map<String, Object>> getAllSubscriberTypes() {
         String sql = "SELECT type_id, name FROM subscriber_types ORDER BY type_id";
@@ -49,11 +61,13 @@ public class SubscriberDAO {
     }
 
     /**
-     * Check if a user is subscribed to a series with a specific subscription type
-     * @param userId The user ID
-     * @param seriesId The series ID
-     * @param subscriptionTypeId The subscription type ID
+     * Checks if a user is subscribed to a series with a specific subscription type.
+     *
+     * @param userId the user ID
+     * @param seriesId the series ID
+     * @param subscriptionTypeId the subscription type ID
      * @return true if subscribed, false otherwise
+     * @throws RuntimeException if a database error occurs
      */
     public boolean isUserSubscribed(Long userId, Long seriesId, Long subscriptionTypeId) {
         String sql = "SELECT COUNT(*) FROM subscribers " +
@@ -79,10 +93,12 @@ public class SubscriberDAO {
     }
 
     /**
-     * Get user's subscription for a series (if any)
-     * @param userId The user ID
-     * @param seriesId The series ID
-     * @return Map with subscription details or null if not subscribed
+     * Retrieves a user's subscription for a series, if any.
+     *
+     * @param userId the user ID
+     * @param seriesId the series ID
+     * @return a map with subscription details, or null if not subscribed
+     * @throws RuntimeException if a database error occurs
      */
     public Map<String, Object> getUserSubscription(Long userId, Long seriesId) {
         String sql = "SELECT s.subscriber_id, s.subscription_type_id, s.sns_subscription_arn, " +
@@ -115,12 +131,14 @@ public class SubscriberDAO {
     }
 
     /**
-     * Add a new subscription
-     * @param userId The user ID
-     * @param seriesId The series ID
-     * @param subscriptionTypeId The subscription type ID
-     * @param snsSubscriptionArn The SNS subscription ARN
-     * @return The subscriber ID
+     * Adds a new subscription for a user to a series.
+     *
+     * @param userId the user ID
+     * @param seriesId the series ID
+     * @param subscriptionTypeId the subscription type ID
+     * @param snsSubscriptionArn the SNS subscription ARN
+     * @return the generated subscriber ID
+     * @throws RuntimeException if a database error occurs or subscription creation fails
      */
     public long addSubscription(Long userId, Long seriesId, Long subscriptionTypeId, String snsSubscriptionArn) {
         String sql = "INSERT INTO subscribers (user_id, series_id, subscription_type_id, sns_subscription_arn) " +
@@ -152,9 +170,11 @@ public class SubscriberDAO {
     }
 
     /**
-     * Remove a subscription
-     * @param userId The user ID
-     * @param seriesId The series ID
+     * Removes a subscription for a user from a series.
+     *
+     * @param userId the user ID
+     * @param seriesId the series ID
+     * @throws RuntimeException if a database error occurs
      */
     public void removeSubscription(Long userId, Long seriesId) {
         String sql = "DELETE FROM subscribers WHERE user_id = ? AND series_id = ?";
@@ -171,10 +191,12 @@ public class SubscriberDAO {
     }
 
     /**
-     * Update the SNS subscription ARN for a user's subscription
-     * @param userId The user ID
-     * @param seriesId The series ID
-     * @param snsSubscriptionArn The new subscription ARN
+     * Updates the SNS subscription ARN for a user's subscription.
+     *
+     * @param userId the user ID
+     * @param seriesId the series ID
+     * @param snsSubscriptionArn the new subscription ARN
+     * @throws RuntimeException if a database error occurs or update fails
      */
     public void updateSubscriptionArn(Long userId, Long seriesId, String snsSubscriptionArn) {
         String sql = "UPDATE subscribers SET sns_subscription_arn = ? " +
@@ -197,9 +219,11 @@ public class SubscriberDAO {
     }
 
     /**
-     * Get all subscribers for a series
-     * @param seriesId The series ID
-     * @return List of subscriber information
+     * Retrieves all subscribers for a series.
+     *
+     * @param seriesId the series ID
+     * @return a list of subscriber information maps
+     * @throws RuntimeException if a database error occurs
      */
     public List<Map<String, Object>> getSeriesSubscribers(Long seriesId) {
         String sql = "SELECT s.subscriber_id, s.user_id, s.subscription_type_id, " +

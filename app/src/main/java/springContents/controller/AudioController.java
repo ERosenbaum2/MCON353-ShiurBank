@@ -17,10 +17,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * REST controller for audio file streaming operations.
+ * Handles listing audio files and streaming audio content from S3 buckets.
+ */
 @RestController
 @RequestMapping("/api/audio")
 public class AudioController {
 
+    /**
+     * The S3Service for accessing audio files.
+     */
     @Autowired
     private S3Service s3Service;
 

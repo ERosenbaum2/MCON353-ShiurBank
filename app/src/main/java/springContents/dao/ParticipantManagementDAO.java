@@ -13,20 +13,32 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Data Access Object for participant management operations.
+ * Handles database operations related to managing participants in series,
+ * including retrieval, removal, and status checking.
+ */
 @Repository
 public class ParticipantManagementDAO {
 
     private final DataSource dataSource;
 
+    /**
+     * Constructs a new ParticipantManagementDAO with the specified data source.
+     *
+     * @param dataSource the data source for database connections
+     */
     @Autowired
     public ParticipantManagementDAO(DataSource dataSource){
         this.dataSource = dataSource;
     }
 
     /**
-     * Get all participants for a series, sorted by last name alphabetically
-     * @param seriesId The series ID
-     * @return List of participants with their details
+     * Retrieves all participants for a series, sorted by last name alphabetically.
+     *
+     * @param seriesId the series ID
+     * @return a list of participants with their details
+     * @throws RuntimeException if a database error occurs
      */
     public List<Map<String, Object>> getParticipants(Long seriesId) {
         String sql =
@@ -68,10 +80,12 @@ public class ParticipantManagementDAO {
     }
 
     /**
-     * Remove a participant from a series and all associated tables
-     * This removes entries from: gabbaim, shiur_participants, subscribers, favorite_shiurim
-     * @param userId The user ID to remove
-     * @param seriesId The series ID
+     * Removes a participant from a series and all associated tables.
+     * This removes entries from: gabbaim, shiur_participants, subscribers, favorite_shiurim.
+     *
+     * @param userId the user ID to remove
+     * @param seriesId the series ID
+     * @throws RuntimeException if a database error occurs
      */
     public void removeParticipantFromSeries(Long userId, Long seriesId) {
         String deleteGabbai = "DELETE FROM gabbaim WHERE user_id = ? AND series_id = ?";
@@ -116,10 +130,12 @@ public class ParticipantManagementDAO {
     }
 
     /**
-     * Check if a participant exists in the series
-     * @param userId The user ID
-     * @param seriesId The series ID
+     * Checks if a participant exists in the series.
+     *
+     * @param userId the user ID
+     * @param seriesId the series ID
      * @return true if the user is a participant, false otherwise
+     * @throws RuntimeException if a database error occurs
      */
     public boolean isParticipantInSeries(Long userId, Long seriesId) {
         String sql = "SELECT COUNT(*) FROM shiur_participants WHERE user_id = ? AND series_id = ?";

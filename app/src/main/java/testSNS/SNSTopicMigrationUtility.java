@@ -42,6 +42,13 @@ public class SNSTopicMigrationUtility {
     private final SnsClient snsClient;
     private final S3Client s3Client;
 
+    /**
+     * Constructs a new SNSTopicMigrationUtility.
+     * Initializes database connection, SNS client, and S3 client from credentials file.
+     *
+     * @throws IOException if the credentials file cannot be read
+     * @throws SQLException if database connection fails
+     */
     public SNSTopicMigrationUtility() throws IOException, SQLException {
         // Load credentials
         Properties credentials = new Properties();
@@ -85,6 +92,11 @@ public class SNSTopicMigrationUtility {
         logger.info("S3 client initialized with region: {} and profile: {}", s3Region, s3Profile);
     }
 
+    /**
+     * Runs the migration process to create SNS topics for all series.
+     * Checks for existing topics, creates S3 buckets if needed, and creates
+     * SNS topics for series that don't have them.
+     */
     public void runMigration() {
         logger.info("=== Starting SNS Topic Migration Utility ===");
 
@@ -144,6 +156,12 @@ public class SNSTopicMigrationUtility {
         }
     }
 
+    /**
+     * Retrieves all series IDs from the database.
+     *
+     * @return a list of all series IDs
+     * @throws SQLException if a database error occurs
+     */
     private List<Long> getAllSeriesIds() throws SQLException {
         List<Long> seriesIds = new ArrayList<>();
         String sql = "SELECT series_id FROM shiur_series ORDER BY series_id";
@@ -159,6 +177,13 @@ public class SNSTopicMigrationUtility {
         return seriesIds;
     }
 
+    /**
+     * Retrieves the SNS topic ARN for a series from the database.
+     *
+     * @param seriesId the series ID to look up
+     * @return the topic ARN, or null if not set
+     * @throws SQLException if a database error occurs
+     */
     private String getSeriesTopicArn(Long seriesId) throws SQLException {
         String sql = "SELECT sns_topic_arn FROM shiur_series WHERE series_id = ?";
 
@@ -174,6 +199,13 @@ public class SNSTopicMigrationUtility {
         return null;
     }
 
+    /**
+     * Updates the SNS topic ARN for a series in the database.
+     *
+     * @param seriesId the series ID
+     * @param topicArn the topic ARN to set
+     * @throws SQLException if a database error occurs or update fails
+     */
     private void updateSeriesTopicArn(Long seriesId, String topicArn) throws SQLException {
         String sql = "UPDATE shiur_series SET sns_topic_arn = ? WHERE series_id = ?";
 
@@ -188,6 +220,12 @@ public class SNSTopicMigrationUtility {
         }
     }
 
+    /**
+     * Checks if an S3 bucket exists for a series.
+     *
+     * @param seriesId the series ID
+     * @return true if the bucket exists, false otherwise
+     */
     private boolean doesS3BucketExist(Long seriesId) {
         String bucketName = "shiur-series-" + seriesId;
 
@@ -211,6 +249,13 @@ public class SNSTopicMigrationUtility {
         }
     }
 
+    /**
+     * Creates an SNS topic for a series.
+     *
+     * @param seriesId the series ID
+     * @return the ARN of the created topic
+     * @throws RuntimeException if topic creation fails
+     */
     private String createSeriesTopic(Long seriesId) {
         String topicName = "series-" + seriesId + "-notifications";
 
@@ -228,6 +273,12 @@ public class SNSTopicMigrationUtility {
         }
     }
 
+    /**
+     * Creates an S3 bucket for a series if it doesn't already exist.
+     *
+     * @param seriesId the series ID
+     * @throws RuntimeException if bucket creation fails
+     */
     private void createS3Bucket(Long seriesId) {
         String bucketName = "shiur-series-" + seriesId;
 

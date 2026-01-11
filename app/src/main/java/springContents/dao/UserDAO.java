@@ -11,18 +11,35 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Data Access Object for User entities.
+ * Handles database operations related to user management including authentication,
+ * user creation, username and email validation, and user-institution associations.
+ */
 @Repository
 public class UserDAO {
     
     private final DataSource dataSource;
     private final BCryptPasswordEncoder passwordEncoder;
     
+    /**
+     * Constructs a new UserDAO with the specified data source.
+     *
+     * @param dataSource the data source for database connections
+     */
     @Autowired
     public UserDAO(DataSource dataSource) {
         this.dataSource = dataSource;
         this.passwordEncoder = new BCryptPasswordEncoder();
     }
     
+    /**
+     * Checks if a username already exists in the database.
+     *
+     * @param username the username to check
+     * @return true if the username exists, false otherwise
+     * @throws RuntimeException if a database error occurs
+     */
     public boolean usernameExists(String username) {
         String sql = "SELECT COUNT(*) FROM users WHERE username = ?";
         try (Connection conn = dataSource.getConnection();
@@ -39,6 +56,13 @@ public class UserDAO {
         return false;
     }
     
+    /**
+     * Checks if an email address already exists in the database.
+     *
+     * @param email the email address to check
+     * @return true if the email exists, false otherwise
+     * @throws RuntimeException if a database error occurs
+     */
     public boolean emailExists(String email) {
         String sql = "SELECT COUNT(*) FROM users WHERE email = ?";
         try (Connection conn = dataSource.getConnection();
@@ -55,6 +79,18 @@ public class UserDAO {
         return false;
     }
     
+    /**
+     * Creates a new user in the database with a hashed password.
+     *
+     * @param username the unique username for the new user
+     * @param password the plain text password to be hashed
+     * @param title the user's title
+     * @param firstName the user's first name
+     * @param lastName the user's last name
+     * @param email the user's email address
+     * @return the created User object with the generated user ID
+     * @throws RuntimeException if a database error occurs or user creation fails
+     */
     public User createUser(String username, String password, String title, String firstName, 
                           String lastName, String email) {
         String hashedPassword = passwordEncoder.encode(password);
@@ -98,6 +134,14 @@ public class UserDAO {
         // Spring will handle it when the transaction completes
     }
     
+    /**
+     * Authenticates a user by verifying the username and password.
+     *
+     * @param username the username to authenticate
+     * @param password the plain text password to verify
+     * @return the User object if authentication succeeds, null otherwise
+     * @throws RuntimeException if a database error occurs
+     */
     public User authenticateUser(String username, String password) {
         String sql = "SELECT user_id, username, hashed_pwd, title, fname, lname, email " +
                      "FROM users WHERE username = ?";
@@ -126,6 +170,13 @@ public class UserDAO {
         return null;
     }
     
+    /**
+     * Retrieves a user by their username.
+     *
+     * @param username the username to look up
+     * @return the User object, or null if not found
+     * @throws RuntimeException if a database error occurs
+     */
     public User getUserByUsername(String username) {
         String sql = "SELECT user_id, username, title, fname, lname, email " +
                      "FROM users WHERE username = ?";
@@ -151,6 +202,13 @@ public class UserDAO {
         return null;
     }
     
+    /**
+     * Associates a user with an institution.
+     *
+     * @param userId the user ID to associate
+     * @param institutionId the institution ID to associate with
+     * @throws RuntimeException if a database error occurs or association fails
+     */
     public void associateUserWithInstitution(Long userId, Long institutionId) {
         String sql = "INSERT INTO user_institution_assoc (user_id, inst_id) VALUES (?, ?) " +
                      "ON DUPLICATE KEY UPDATE user_id = user_id";
@@ -171,7 +229,11 @@ public class UserDAO {
     }
 
     /**
-     * Get all users for admin selection
+     * Retrieves all users from the database, ordered by last name and first name.
+     * Used for admin selection interfaces.
+     *
+     * @return a list of all users
+     * @throws RuntimeException if a database error occurs
      */
     public List<User> getAllUsers() {
         String sql = "SELECT user_id, username, title, fname, lname, email FROM users ORDER BY lname, fname";

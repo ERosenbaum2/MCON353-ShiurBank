@@ -15,6 +15,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * REST controller for administrative operations.
+ * Handles admin authentication checks, pending permission management,
+ * user management, and RDS database control.
+ */
 @RestController
 @RequestMapping("/api/admin")
 public class AdminController {
@@ -23,6 +28,13 @@ public class AdminController {
     private final RdsService rdsService;
     private final UserDAO userDAO;
 
+    /**
+     * Constructs a new AdminController with the specified dependencies.
+     *
+     * @param adminDAO the AdminDAO for admin operations
+     * @param rdsService the RdsService for database control
+     * @param userDAO the UserDAO for user operations
+     */
     @Autowired
     public AdminController(AdminDAO adminDAO, RdsService rdsService, UserDAO userDAO) {
         this.adminDAO = adminDAO;

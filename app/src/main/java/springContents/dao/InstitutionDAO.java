@@ -9,16 +9,32 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Data Access Object for Institution entities.
+ * Handles database operations related to institutions including retrieval
+ * of all institutions and lookup by ID.
+ */
 @Repository
 public class InstitutionDAO {
     
     private final DataSource dataSource;
     
+    /**
+     * Constructs a new InstitutionDAO with the specified data source.
+     *
+     * @param dataSource the data source for database connections
+     */
     @Autowired
     public InstitutionDAO(DataSource dataSource) {
         this.dataSource = dataSource;
     }
     
+    /**
+     * Retrieves all institutions from the database, ordered by name.
+     *
+     * @return a list of all institutions
+     * @throws RuntimeException if a database error occurs
+     */
     public List<Institution> getAllInstitutions() {
         List<Institution> institutions = new ArrayList<>();
         String sql = "SELECT inst_id, name FROM institutions ORDER BY name";
@@ -39,6 +55,13 @@ public class InstitutionDAO {
         return institutions;
     }
     
+    /**
+     * Retrieves an institution by its unique identifier.
+     *
+     * @param instId the institution ID to look up
+     * @return the Institution object, or null if not found
+     * @throws RuntimeException if a database error occurs
+     */
     public Institution getInstitutionById(Long instId) {
         String sql = "SELECT inst_id, name FROM institutions WHERE inst_id = ?";
         

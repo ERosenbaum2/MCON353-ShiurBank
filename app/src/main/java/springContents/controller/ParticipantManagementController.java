@@ -31,6 +31,12 @@ public class ParticipantManagementController {
 
     private final ShiurSeriesDAO shiurSeriesDAO;
 
+    /**
+     * Constructs a new ParticipantManagementController with the specified dependencies.
+     *
+     * @param participantManagementDAO the ParticipantManagementDAO for participant operations
+     * @param shiurSeriesDAO the ShiurSeriesDAO for series operations
+     */
     @Autowired
     public ParticipantManagementController(ParticipantManagementDAO participantManagementDAO, ShiurSeriesDAO shiurSeriesDAO) {
         this.participantManagementDAO = participantManagementDAO;

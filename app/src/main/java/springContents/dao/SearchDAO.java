@@ -10,18 +10,36 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * Data Access Object for search operations.
+ * Handles database queries for searching series and recordings based on keywords,
+ * Rebbi names, topic names, and institution names, with access control filtering.
+ */
 @Repository
 public class SearchDAO {
 
     private final DataSource dataSource;
 
+    /**
+     * Constructs a new SearchDAO with the specified data source.
+     *
+     * @param dataSource the data source for database connections
+     */
     @Autowired
     public SearchDAO(DataSource dataSource) {
         this.dataSource = dataSource;
     }
 
     /**
-     * Search for series matching the query terms
+     * Searches for series matching the query terms.
+     *
+     * @param keywords the set of keyword strings to search for
+     * @param rebbiNames the set of Rebbi names to match
+     * @param topicNames the set of topic names to match
+     * @param institutionNames the set of institution names to match
+     * @param userId the user ID for access control checking
+     * @return a list of SearchResult objects for matching series
+     * @throws RuntimeException if a database error occurs
      */
     public List<SearchResult> searchSeries(Set<String> keywords, Set<String> rebbiNames,
                                            Set<String> topicNames, Set<String> institutionNames,
@@ -126,7 +144,15 @@ public class SearchDAO {
     }
 
     /**
-     * Search for recordings matching the query terms
+     * Searches for recordings matching the query terms.
+     *
+     * @param keywords the set of keyword strings to search for
+     * @param rebbiNames the set of Rebbi names to match
+     * @param topicNames the set of topic names to match
+     * @param institutionNames the set of institution names to match
+     * @param userId the user ID for access control checking
+     * @return a list of SearchResult objects for matching recordings
+     * @throws RuntimeException if a database error occurs
      */
     public List<SearchResult> searchRecordings(Set<String> keywords, Set<String> rebbiNames,
                                                Set<String> topicNames, Set<String> institutionNames,
@@ -238,7 +264,10 @@ public class SearchDAO {
     }
 
     /**
-     * Get all rebbi names for matching
+     * Retrieves all Rebbi names from the database for search matching.
+     *
+     * @return a list of all Rebbi full names (lowercase)
+     * @throws RuntimeException if a database error occurs
      */
     public List<String> getAllRebbiNames() {
         List<String> names = new ArrayList<>();
@@ -258,7 +287,10 @@ public class SearchDAO {
     }
 
     /**
-     * Get all topic names for matching
+     * Retrieves all topic names from the database for search matching.
+     *
+     * @return a list of all topic names (lowercase)
+     * @throws RuntimeException if a database error occurs
      */
     public List<String> getAllTopicNames() {
         List<String> names = new ArrayList<>();
@@ -278,7 +310,10 @@ public class SearchDAO {
     }
 
     /**
-     * Get all institution names for matching
+     * Retrieves all institution names from the database for search matching.
+     *
+     * @return a list of all institution names (lowercase)
+     * @throws RuntimeException if a database error occurs
      */
     public List<String> getAllInstitutionNames() {
         List<String> names = new ArrayList<>();
@@ -298,7 +333,11 @@ public class SearchDAO {
     }
 
     /**
-     * Get user's associated institution IDs
+     * Retrieves the institution IDs associated with a user.
+     *
+     * @param userId the user ID
+     * @return a list of institution IDs
+     * @throws RuntimeException if a database error occurs
      */
     public List<Long> getUserInstitutions(Long userId) {
         List<Long> institutionIds = new ArrayList<>();

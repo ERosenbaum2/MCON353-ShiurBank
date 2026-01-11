@@ -14,6 +14,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * REST controller for participant approval operations.
+ * Handles participant application requests, approval, and rejection for series.
+ */
 @RestController
 @RequestMapping("/api/series")
 public class ParticipantApprovalController {
@@ -21,6 +25,12 @@ public class ParticipantApprovalController {
     private final ParticipantApprovalDAO participantApprovalDAO;
     private final ShiurSeriesDAO shiurSeriesDAO;
 
+    /**
+     * Constructs a new ParticipantApprovalController with the specified dependencies.
+     *
+     * @param participantApprovalDAO the ParticipantApprovalDAO for approval operations
+     * @param shiurSeriesDAO the ShiurSeriesDAO for series operations
+     */
     @Autowired
     public ParticipantApprovalController(ParticipantApprovalDAO participantApprovalDAO,
                                          ShiurSeriesDAO shiurSeriesDAO) {

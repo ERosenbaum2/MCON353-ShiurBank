@@ -12,9 +12,19 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;
 
+/**
+ * Utility class for starting an AWS RDS database instance.
+ * Reads database instance identifier from properties file and starts the instance.
+ */
 public class StartDBInstance {
     private static final Logger logger = LoggerFactory.getLogger(StartDBInstance.class);
 
+    /**
+     * Main method to start the RDS database instance.
+     *
+     * @param args command line arguments (not used)
+     * @throws IOException if the properties file cannot be read
+     */
     public static void main(String[] args) throws IOException {
         Properties credentials = new Properties();
         credentials.load(new FileInputStream("app/src/main/resources/dbcredentials.properties"));
@@ -33,6 +43,13 @@ public class StartDBInstance {
         rdsClient.close();
     }
 
+    /**
+     * Starts the specified RDS database instance.
+     *
+     * @param rdsClient the RDS client to use
+     * @param dbInstanceIdentifier the database instance identifier to start
+     * @throws RuntimeException if starting the instance fails
+     */
     public static void startInstance(RdsClient rdsClient, String dbInstanceIdentifier) {
         logger.info(dbInstanceIdentifier);
         try {

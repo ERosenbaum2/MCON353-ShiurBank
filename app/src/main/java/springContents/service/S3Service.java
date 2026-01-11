@@ -31,6 +31,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
+/**
+ * Service for managing S3 bucket operations and file storage.
+ * Handles creation and deletion of series-specific S3 buckets, file uploads,
+ * downloads, and object listing for shiur recordings.
+ */
 @Service
 public class S3Service {
     private static final Logger logger = LoggerFactory.getLogger(S3Service.class);
@@ -39,6 +44,12 @@ public class S3Service {
     private final Region region;
     private final String prefix;
 
+    /**
+     * Constructs a new S3Service with configuration from dbcredentials.properties.
+     *
+     * @param resourceLoader the resource loader to access configuration files
+     * @throws IOException if the properties file cannot be read
+     */
     @Autowired
     public S3Service(ResourceLoader resourceLoader) throws IOException {
         Properties credentials = new Properties();

@@ -12,16 +12,32 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Data Access Object for Rebbi entities.
+ * Handles database operations related to Rebbeim (teachers) including
+ * retrieval of all Rebbeim from the database.
+ */
 @Repository
 public class RebbiDAO {
 
     private final DataSource dataSource;
 
+    /**
+     * Constructs a new RebbiDAO with the specified data source.
+     *
+     * @param dataSource the data source for database connections
+     */
     @Autowired
     public RebbiDAO(DataSource dataSource) {
         this.dataSource = dataSource;
     }
 
+    /**
+     * Retrieves all Rebbeim from the database, ordered by last name and first name.
+     *
+     * @return a list of all Rebbeim
+     * @throws RuntimeException if a database error occurs
+     */
     public List<Rebbi> getAllRebbeim() {
         List<Rebbi> rebbeim = new ArrayList<>();
         String sql = "SELECT rebbi_id, title, fname, lname, user_id FROM rebbeim ORDER BY lname, fname";

@@ -13,10 +13,22 @@ import java.io.IOException;
 import java.util.Objects;
 import java.util.Properties;
 
+/**
+ * Configuration class for database connection and transaction management.
+ * Sets up the MySQL data source using credentials from dbcredentials.properties
+ * and configures Spring transaction management.
+ */
 @Configuration
 @EnableTransactionManagement  // Add this annotation
 public class DatabaseConfig {
 
+    /**
+     * Creates and configures the MySQL data source bean.
+     * Reads database connection properties from dbcredentials.properties file.
+     *
+     * @return the configured DataSource
+     * @throws IOException if the properties file cannot be read
+     */
     @Bean
     public DataSource dataSource() throws IOException {
         Properties credentials = new Properties();
@@ -40,6 +52,13 @@ public class DatabaseConfig {
         return dataSource;
     }
 
+    /**
+     * Creates and configures the transaction manager bean.
+     *
+     * @param dataSource the data source to use for transactions
+     * @return the configured PlatformTransactionManager
+     * @throws NullPointerException if dataSource is null
+     */
     @Bean
     public PlatformTransactionManager transactionManager(DataSource dataSource) {
         return new DataSourceTransactionManager(Objects.requireNonNull(dataSource, "dataSource must not be null"));

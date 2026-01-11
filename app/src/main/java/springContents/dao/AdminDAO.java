@@ -13,18 +13,32 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Data Access Object for admin operations.
+ * Handles database operations related to administrator management, including
+ * admin status checking, pending permission management, and admin email retrieval.
+ */
 @Repository
 public class AdminDAO {
 
     private final DataSource dataSource;
 
+    /**
+     * Constructs a new AdminDAO with the specified data source.
+     *
+     * @param dataSource the data source for database connections
+     */
     @Autowired
     public AdminDAO(DataSource dataSource) {
         this.dataSource = dataSource;
     }
 
     /**
-     * Check if a user is an admin
+     * Checks if a user is an admin.
+     *
+     * @param userId the user ID to check
+     * @return true if the user is an admin, false otherwise
+     * @throws RuntimeException if a database error occurs
      */
     public boolean isAdmin(Long userId) {
         String sql = "SELECT COUNT(*) FROM admins WHERE user_id = ?";
@@ -44,7 +58,10 @@ public class AdminDAO {
     }
 
     /**
-     * Get all pending permissions with series details
+     * Retrieves all pending permissions with series details.
+     *
+     * @return a list of pending permission maps with series information
+     * @throws RuntimeException if a database error occurs
      */
     public List<Map<String, Object>> getPendingPermissions() {
         String sql =
@@ -86,7 +103,10 @@ public class AdminDAO {
     }
 
     /**
-     * Remove a pending permission by pending_id
+     * Removes a pending permission by pending_id, effectively verifying it.
+     *
+     * @param pendingId the pending permission ID to verify
+     * @throws RuntimeException if a database error occurs or pending permission not found
      */
     public void verifyPendingPermission(Long pendingId) {
         String sql = "DELETE FROM series_pending_approval WHERE pending_id = ?";
@@ -104,7 +124,10 @@ public class AdminDAO {
     }
 
     /**
-     * Add a user as an admin
+     * Adds a user as an admin.
+     *
+     * @param userId the user ID to add as admin
+     * @throws RuntimeException if a database error occurs
      */
     public void addAdmin(Long userId) {
         String sql = "INSERT INTO admins (user_id) VALUES (?) " +
@@ -120,7 +143,10 @@ public class AdminDAO {
     }
 
     /**
-     * Add a pending permission entry for a series
+     * Adds a pending permission entry for a series.
+     *
+     * @param seriesId the series ID
+     * @throws RuntimeException if a database error occurs
      */
     public void addPendingPermission(Long seriesId) {
         String sql = "INSERT INTO series_pending_approval (series_id) VALUES (?) " +
@@ -136,7 +162,10 @@ public class AdminDAO {
     }
 
     /**
-     * Get all admin email addresses
+     * Retrieves all admin email addresses.
+     *
+     * @return a list of admin email addresses
+     * @throws RuntimeException if a database error occurs
      */
     public List<String> getAdminEmails() {
         String sql =

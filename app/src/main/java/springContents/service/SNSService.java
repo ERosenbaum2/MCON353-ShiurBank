@@ -19,6 +19,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+/**
+ * Service for managing AWS SNS (Simple Notification Service) operations.
+ * Handles creation and deletion of SNS topics for series notifications,
+ * publishing notifications, and managing subscriptions.
+ */
 @Service
 public class SNSService {
     private static final Logger logger = LoggerFactory.getLogger(SNSService.class);
@@ -26,6 +31,12 @@ public class SNSService {
     private final String adminTopicArn;
     private final Region region;
 
+    /**
+     * Constructs a new SNSService with configuration from dbcredentials.properties.
+     *
+     * @param resourceLoader the resource loader to access configuration files
+     * @throws IOException if the properties file cannot be read
+     */
     @Autowired
     public SNSService(ResourceLoader resourceLoader) throws IOException {
         Properties credentials = new Properties();

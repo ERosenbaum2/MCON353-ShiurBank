@@ -5,7 +5,17 @@ import java.io.IOException;
 import java.sql.*;
 import java.util.Properties;
 
+/**
+ * Utility class for testing database connectivity.
+ * Connects to the MySQL database and lists all tables in the database.
+ */
 public class Testdb_conn {
+    /**
+     * Main method to test database connection and list all tables.
+     *
+     * @param args command line arguments (not used)
+     * @throws IOException if the properties file cannot be read
+     */
     public static void main(String[] args) throws IOException {
         Properties credentials = new Properties();
         credentials.load(new FileInputStream("app/src/main/resources/dbcredentials.properties"));

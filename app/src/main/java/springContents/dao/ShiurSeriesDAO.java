@@ -14,16 +14,37 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Data Access Object for ShiurSeries entities.
+ * Handles database operations related to shiur series including creation, updates,
+ * deletion, gabbai and participant management, and series retrieval.
+ */
 @Repository
 public class ShiurSeriesDAO {
 
     private final DataSource dataSource;
 
+    /**
+     * Constructs a new ShiurSeriesDAO with the specified data source.
+     *
+     * @param dataSource the data source for database connections
+     */
     @Autowired
     public ShiurSeriesDAO(DataSource dataSource) {
         this.dataSource = dataSource;
     }
 
+    /**
+     * Creates a new shiur series in the database.
+     *
+     * @param rebbiId the ID of the Rebbi delivering the series
+     * @param topicId the ID of the topic for the series
+     * @param requiresPermission whether the series requires permission to access
+     * @param instId the ID of the institution hosting the series
+     * @param description the description of the series
+     * @return the generated series ID
+     * @throws RuntimeException if a database error occurs or series creation fails
+     */
     public long createSeries(Long rebbiId,
                              Long topicId,
                              boolean requiresPermission,
@@ -59,9 +80,11 @@ public class ShiurSeriesDAO {
     }
 
     /**
-     * Update the SNS topic ARN for a series
-     * @param seriesId The series ID
-     * @param topicArn The SNS topic ARN
+     * Updates the SNS topic ARN for a series.
+     *
+     * @param seriesId the series ID
+     * @param topicArn the SNS topic ARN to set
+     * @throws RuntimeException if a database error occurs or update fails
      */
     public void updateSeriesTopicArn(Long seriesId, String topicArn) {
         String sql = "UPDATE shiur_series SET sns_topic_arn = ? WHERE series_id = ?";
@@ -82,9 +105,11 @@ public class ShiurSeriesDAO {
     }
 
     /**
-     * Get the SNS topic ARN for a series
-     * @param seriesId The series ID
-     * @return The topic ARN or null if not set
+     * Retrieves the SNS topic ARN for a series.
+     *
+     * @param seriesId the series ID
+     * @return the topic ARN, or null if not set
+     * @throws RuntimeException if a database error occurs
      */
     public String getSeriesTopicArn(Long seriesId) {
         String sql = "SELECT sns_topic_arn FROM shiur_series WHERE series_id = ?";
@@ -106,8 +131,10 @@ public class ShiurSeriesDAO {
     }
 
     /**
-     * Delete a series (this will trigger CASCADE delete on related records)
-     * @param seriesId The series ID
+     * Deletes a series from the database. This will trigger CASCADE delete on related records.
+     *
+     * @param seriesId the series ID to delete
+     * @throws RuntimeException if a database error occurs
      */
     public void deleteSeries(Long seriesId) {
         String sql = "DELETE FROM shiur_series WHERE series_id = ?";
@@ -122,6 +149,13 @@ public class ShiurSeriesDAO {
         }
     }
 
+    /**
+     * Retrieves all series where the specified user is a gabbai.
+     *
+     * @param userId the user ID of the gabbai
+     * @return a list of series maps with details including pending status
+     * @throws RuntimeException if a database error occurs
+     */
     public List<Map<String, Object>> getSeriesForGabbai(Long userId) {
         String sql =
                 "SELECT s.series_id, s.description, s.sns_topic_arn, " +
@@ -171,6 +205,13 @@ public class ShiurSeriesDAO {
         return result;
     }
 
+    /**
+     * Retrieves detailed information about a specific series.
+     *
+     * @param seriesId the series ID to look up
+     * @return a map containing series details, or null if not found
+     * @throws RuntimeException if a database error occurs
+     */
     public Map<String, Object> getSeriesDetails(Long seriesId) {
         String sql =
                 "SELECT s.series_id, s.description, s.sns_topic_arn, " +
@@ -209,10 +250,12 @@ public class ShiurSeriesDAO {
     }
 
     /**
-     * Check if a gabbai is already a gabbai for another series from the same Rabbi
-     * @param userId The user ID of the gabbai
-     * @param rebbiId The Rabbi ID
+     * Checks if a gabbai is already a gabbai for another series from the same Rabbi.
+     *
+     * @param userId the user ID of the gabbai
+     * @param rebbiId the Rabbi ID
      * @return true if the gabbai is already a gabbai for another series from this Rabbi, false otherwise
+     * @throws RuntimeException if a database error occurs
      */
     public boolean isGabbaiForSameRebbi(Long userId, Long rebbiId) {
         String sql =
@@ -239,10 +282,12 @@ public class ShiurSeriesDAO {
     }
 
     /**
-     * Check if a user is a gabbai for a specific series
-     * @param userId The user ID
-     * @param seriesId The series ID
+     * Checks if a user is a gabbai for a specific series.
+     *
+     * @param userId the user ID
+     * @param seriesId the series ID
      * @return true if the user is a gabbai for this series, false otherwise
+     * @throws RuntimeException if a database error occurs
      */
     public boolean isGabbaiForSeries(Long userId, Long seriesId) {
         String sql = "SELECT COUNT(*) FROM gabbaim WHERE user_id = ? AND series_id = ?";
@@ -264,6 +309,13 @@ public class ShiurSeriesDAO {
         return false;
     }
 
+    /**
+     * Adds a user as a gabbai for a series.
+     *
+     * @param userId the user ID to add as gabbai
+     * @param seriesId the series ID
+     * @throws RuntimeException if a database error occurs
+     */
     public void addGabbai(Long userId, Long seriesId) {
         String sql = "INSERT INTO gabbaim (user_id, series_id) VALUES (?, ?) " +
                 "ON DUPLICATE KEY UPDATE gabbaim.user_id = gabbaim.user_id";
@@ -279,6 +331,13 @@ public class ShiurSeriesDAO {
         }
     }
 
+    /**
+     * Adds a user as a participant for a series.
+     *
+     * @param userId the user ID to add as participant
+     * @param seriesId the series ID
+     * @throws RuntimeException if a database error occurs
+     */
     public void addParticipant(Long userId, Long seriesId) {
         String sql = "INSERT INTO shiur_participants (user_id, series_id) VALUES (?, ?) " +
                 "ON DUPLICATE KEY UPDATE shiur_participants.user_id = shiur_participants.user_id";
@@ -295,9 +354,11 @@ public class ShiurSeriesDAO {
     }
 
     /**
-     * Get all series where the user is either a gabbai or participant
-     * @param userId The user ID
-     * @return List of series with role information
+     * Retrieves all series where the user is either a gabbai or participant.
+     *
+     * @param userId the user ID
+     * @return a list of series maps with role information
+     * @throws RuntimeException if a database error occurs
      */
     public List<Map<String, Object>> getAllSeriesForUser(Long userId) {
         String sql =

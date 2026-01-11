@@ -30,6 +30,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * REST controller for shiur series management.
+ * Handles series creation, retrieval, deletion, and related operations including
+ * S3 bucket and SNS topic management.
+ */
 @RestController
 @RequestMapping("/api")
 public class SeriesController {
@@ -44,6 +49,17 @@ public class SeriesController {
     private final SNSService snsService;
     private final S3Service s3Service;
 
+    /**
+     * Constructs a new SeriesController with the specified dependencies.
+     *
+     * @param topicDAO the TopicDAO for topic operations
+     * @param rebbiDAO the RebbiDAO for Rebbi operations
+     * @param shiurSeriesDAO the ShiurSeriesDAO for series operations
+     * @param userDAO the UserDAO for user operations
+     * @param adminDAO the AdminDAO for admin operations
+     * @param snsService the SNSService for SNS operations
+     * @param s3Service the S3Service for S3 operations
+     */
     @Autowired
     public SeriesController(TopicDAO topicDAO,
                             RebbiDAO rebbiDAO,
@@ -61,16 +77,32 @@ public class SeriesController {
         this.s3Service = s3Service;
     }
 
+    /**
+     * Retrieves all topics from the database.
+     *
+     * @return a list of all topics
+     */
     @GetMapping("/topics")
     public List<Topic> getTopics() {
         return topicDAO.getAllTopics();
     }
 
+    /**
+     * Retrieves all Rebbeim from the database.
+     *
+     * @return a list of all Rebbeim
+     */
     @GetMapping("/rebbeim")
     public List<Rebbi> getRebbeim() {
         return rebbiDAO.getAllRebbeim();
     }
 
+    /**
+     * Retrieves all series where the current user is a gabbai or participant.
+     *
+     * @param session the HTTP session for authentication
+     * @return a list of series maps with role information, or UNAUTHORIZED if not logged in
+     */
     @GetMapping("/my-series")
     public ResponseEntity<List<Map<String, Object>>> getMySeries(HttpSession session) {
         User user = (User) session.getAttribute("user");
@@ -81,6 +113,15 @@ public class SeriesController {
         return ResponseEntity.ok(series);
     }
 
+    /**
+     * Creates a new shiur series with S3 bucket and SNS topic setup.
+     *
+     * @param body a map containing series information including rebbiId, topicId, instId,
+     *             description, requiresPermission, and optionally extraGabbaim
+     * @param session the HTTP session for authentication
+     * @return a response map with success status, seriesId, and needsVerification flag
+     * @throws RuntimeException if series creation fails or S3/SNS setup fails
+     */
     @PostMapping("/series")
     @Transactional
     public ResponseEntity<Map<String, Object>> createSeries(@RequestBody Map<String, Object> body,
@@ -214,6 +255,14 @@ public class SeriesController {
         return ResponseEntity.ok(resp);
     }
 
+    /**
+     * Retrieves detailed information about a specific series.
+     *
+     * @param id the series ID
+     * @param session the HTTP session for authentication
+     * @return a map containing series details, or NOT_FOUND if series doesn't exist,
+     *         or UNAUTHORIZED if not logged in
+     */
     @GetMapping("/series/{id}")
     public ResponseEntity<Map<String, Object>> getSeries(@PathVariable("id") Long id,
                                                          HttpSession session) {
@@ -229,6 +278,13 @@ public class SeriesController {
         return ResponseEntity.ok(details);
     }
 
+    /**
+     * Checks if the current user is a gabbai for the specified series.
+     *
+     * @param id the series ID
+     * @param session the HTTP session for authentication
+     * @return a map with isGabbai boolean, or UNAUTHORIZED if not logged in
+     */
     @GetMapping("/series/{id}/is-gabbai")
     public ResponseEntity<Map<String, Boolean>> checkIfGabbai(@PathVariable("id") Long id,
                                                               HttpSession session) {
@@ -243,6 +299,14 @@ public class SeriesController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Deletes a series and its associated S3 bucket and SNS topic.
+     *
+     * @param id the series ID to delete
+     * @param session the HTTP session for authentication
+     * @return a response map with success status and message
+     * @throws RuntimeException if deletion fails
+     */
     @DeleteMapping("/series/{id}")
     @Transactional
     public ResponseEntity<Map<String, Object>> deleteSeries(@PathVariable("id") Long id,
@@ -304,6 +368,12 @@ public class SeriesController {
         }
     }
 
+    /**
+     * Converts an object to a Long value.
+     *
+     * @param value the object to convert
+     * @return the Long value, or null if conversion fails
+     */
     private Long toLong(Object value) {
         if (value == null) {
             return null;

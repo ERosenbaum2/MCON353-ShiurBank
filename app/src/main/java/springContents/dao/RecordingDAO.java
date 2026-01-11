@@ -11,16 +11,43 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Data Access Object for Recording entities.
+ * Handles database operations related to shiur recordings including creation,
+ * updates, and retrieval of recordings for series.
+ */
 @Repository
 public class RecordingDAO {
 
     private final DataSource dataSource;
 
+    /**
+     * Constructs a new RecordingDAO with the specified data source.
+     *
+     * @param dataSource the data source for database connections
+     */
     @Autowired
     public RecordingDAO(DataSource dataSource) {
         this.dataSource = dataSource;
     }
 
+    /**
+     * Creates a new recording in the database.
+     *
+     * @param seriesId the ID of the parent series
+     * @param s3FilePath the S3 file path for the recording
+     * @param recordedAt the date and time when the recording was made
+     * @param title the title of the recording
+     * @param keyword1 the first keyword
+     * @param keyword2 the second keyword
+     * @param keyword3 the third keyword
+     * @param keyword4 the fourth keyword
+     * @param keyword5 the fifth keyword
+     * @param keyword6 the sixth keyword
+     * @param description the description of the recording
+     * @return the generated recording ID
+     * @throws RuntimeException if a database error occurs
+     */
     public long createRecording(Long seriesId,
                                 String s3FilePath,
                                 LocalDateTime recordedAt,
@@ -72,6 +99,13 @@ public class RecordingDAO {
         }
     }
 
+    /**
+     * Updates the S3 file path for a recording.
+     *
+     * @param recordingId the ID of the recording to update
+     * @param s3FilePath the new S3 file path
+     * @throws RuntimeException if a database error occurs or no rows are affected
+     */
     public void updateS3FilePath(Long recordingId, String s3FilePath) {
         String sql = "UPDATE shiur_recordings SET s3_file_path = ? WHERE recording_id = ?";
 

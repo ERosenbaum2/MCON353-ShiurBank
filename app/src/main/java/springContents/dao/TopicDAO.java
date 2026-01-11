@@ -12,16 +12,31 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Data Access Object for Topic entities.
+ * Handles database operations related to topic retrieval and management.
+ */
 @Repository
 public class TopicDAO {
 
     private final DataSource dataSource;
 
+    /**
+     * Constructs a new TopicDAO with the specified data source.
+     *
+     * @param dataSource the data source for database connections
+     */
     @Autowired
     public TopicDAO(DataSource dataSource) {
         this.dataSource = dataSource;
     }
 
+    /**
+     * Retrieves all topics from the database, ordered by name.
+     *
+     * @return a list of all topics
+     * @throws RuntimeException if a database error occurs
+     */
     public List<Topic> getAllTopics() {
         List<Topic> topics = new ArrayList<>();
         String sql = "SELECT topic_id, name FROM topics ORDER BY name";

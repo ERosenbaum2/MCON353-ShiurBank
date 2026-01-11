@@ -12,6 +12,10 @@ import software.amazon.awssdk.services.rds.model.RdsException;
 import software.amazon.awssdk.services.rds.model.StartDbInstanceRequest;
 import software.amazon.awssdk.services.rds.model.StopDbInstanceRequest;
 
+/**
+ * Service for managing AWS RDS (Relational Database Service) instance operations.
+ * Handles starting, stopping, and checking the status of the database instance.
+ */
 @Service
 public class RdsService {
     private static final Logger logger = LoggerFactory.getLogger(RdsService.class);
@@ -22,6 +26,10 @@ public class RdsService {
     private final String dbInstanceIdentifier;
     private final Region region;
 
+    /**
+     * Constructs a new RdsService with hardcoded database instance identifier and region.
+     * Uses hardcoded values to ensure RDS control works even when the database is down.
+     */
     public RdsService() {
         // Use hardcoded values instead of reading from properties file
         // This ensures we can start/stop the database even when it's down

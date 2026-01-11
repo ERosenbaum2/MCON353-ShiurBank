@@ -18,6 +18,10 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * REST controller for authentication and user account management.
+ * Handles user login, account creation, logout, and session management.
+ */
 @RestController
 @RequestMapping("/api")
 public class AuthController {
@@ -27,12 +31,26 @@ public class AuthController {
     private final UserDAO userDAO;
     private final InstitutionDAO institutionDAO;
 
+    /**
+     * Constructs a new AuthController with the specified DAOs.
+     *
+     * @param userDAO the UserDAO for user operations
+     * @param institutionDAO the InstitutionDAO for institution operations
+     */
     @Autowired
     public AuthController(UserDAO userDAO, InstitutionDAO institutionDAO) {
         this.userDAO = userDAO;
         this.institutionDAO = institutionDAO;
     }
 
+    /**
+     * Authenticates a user and creates a session.
+     *
+     * @param credentials a map containing "username" and "password"
+     * @param session the HTTP session to store user information
+     * @return a response map with success status and username, or error message
+     * @throws RuntimeException if a database connection error occurs
+     */
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> login(@RequestBody Map<String, String> credentials, HttpSession session) {
         String username = credentials.get("username");
@@ -76,6 +94,15 @@ public class AuthController {
         }
     }
 
+    /**
+     * Creates a new user account with optional institution associations.
+     *
+     * @param accountData a map containing user account information including username, password,
+     *                    title, firstName, lastName, email, and optionally institutions
+     * @param session the HTTP session to store user information upon successful creation
+     * @return a response map with success status and username, or validation errors
+     * @throws RuntimeException if account creation fails
+     */
     @PostMapping("/create-account")
     @Transactional
     public ResponseEntity<Map<String, Object>> createAccount(@RequestBody Map<String, Object> accountData, HttpSession session) {
@@ -181,12 +208,23 @@ public class AuthController {
         }
     }
 
+    /**
+     * Retrieves all institutions from the database.
+     *
+     * @return a list of all institutions
+     */
     @GetMapping("/institutions")
     public ResponseEntity<List<Institution>> getInstitutions() {
         List<Institution> institutions = institutionDAO.getAllInstitutions();
         return ResponseEntity.ok(institutions);
     }
 
+    /**
+     * Retrieves the current logged-in user information from the session.
+     *
+     * @param session the HTTP session
+     * @return a response map with loggedIn status and username if authenticated
+     */
     @GetMapping("/current-user")
     public ResponseEntity<Map<String, Object>> getCurrentUser(HttpSession session) {
         Map<String, Object> response = new HashMap<>();
@@ -202,6 +240,12 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Logs out the current user by invalidating the session.
+     *
+     * @param session the HTTP session to invalidate
+     * @return a response map with success status
+     */
     @PostMapping("/logout")
     public ResponseEntity<Map<String, Object>> logout(HttpSession session) {
         session.invalidate();
@@ -210,6 +254,12 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Validates an email address format.
+     *
+     * @param email the email address to validate
+     * @return true if the email contains both "@" and ".", false otherwise
+     */
     private boolean isValidEmail(String email) {
         return email != null && email.contains("@") && email.contains(".");
     }

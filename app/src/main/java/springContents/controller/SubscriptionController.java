@@ -17,6 +17,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * REST controller for SNS subscription management.
+ * Handles subscription creation, removal, and management for series notifications.
+ */
 @RestController
 @RequestMapping("/api/subscription")
 public class SubscriptionController {
@@ -28,6 +32,14 @@ public class SubscriptionController {
     private final UserDAO userDAO;
     private final SNSService snsService;
 
+    /**
+     * Constructs a new SubscriptionController with the specified dependencies.
+     *
+     * @param subscriberDAO the SubscriberDAO for subscription operations
+     * @param shiurSeriesDAO the ShiurSeriesDAO for series operations
+     * @param userDAO the UserDAO for user operations
+     * @param snsService the SNSService for SNS operations
+     */
     @Autowired
     public SubscriptionController(SubscriberDAO subscriberDAO,
                                   ShiurSeriesDAO shiurSeriesDAO,
