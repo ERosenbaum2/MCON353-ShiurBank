@@ -50,6 +50,38 @@ header h1 {
     margin: 0;
 }
 
+/* Search Container */
+.search-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 1.5rem;
+    background-color: #F5EFE6;
+    flex-shrink: 0;
+}
+
+#search-input {
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    flex-grow: 1;
+    min-width: 200px;
+    max-width: 400px;
+}
+
+#search-input:focus {
+    outline: none;
+    border-color: #3F88C5;
+    box-shadow: 0 0 0 2px rgba(63, 136, 197, 0.2);
+}
+
+#search-btn {
+    padding: 0.5rem 1.5rem;
+    font-size: 0.95rem;
+    white-space: nowrap;
+}
+
 /* User Greeting Bar - Used on dashboard */
 #user-greeting {
     background-color: #3F88C5;
@@ -128,6 +160,16 @@ main {
     header h1 {
         font-size: 1.5rem;
         padding: 1rem 1rem 1rem 0;
+    }
+
+    .header-content {
+        flex-wrap: wrap;
+    }
+
+    .search-container {
+        order: 3;
+        width: 100%;
+        padding: 0.75rem 1rem;
     }
 
     main {

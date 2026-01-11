@@ -9,12 +9,17 @@
     <link rel="stylesheet" href="dashboard-styles.css">
     <link rel="stylesheet" href="search-styles.css">
     <script src="dashboard.js" defer></script>
+    <script src="search.js" defer></script>
 </head>
 <body>
 <!-- Header -->
 <header>
     <div class="header-content">
         <img src="ShiurBank Logo No Words.png" alt="ShiurBank Logo" class="header-logo">
+        <div class="search-container">
+            <input type="text" id="search-input" placeholder="Search for Series or Shiurim...">
+            <button id="search-btn" class="btn-primary">Search</button>
+        </div>
         <h1>ShiurBank</h1>
     </div>
 </header>
@@ -49,5 +54,21 @@
         </div>
     </div>
 </main>
+
+<!-- Search Results Modal -->
+<div id="search-modal-overlay" class="modal-overlay hidden">
+    <div class="modal-content search-modal">
+        <button class="modal-close" onclick="closeSearchModal()">&times;</button>
+        <h2>Search Results</h2>
+        <div id="series-results-section">
+            <h3>Series Results</h3>
+            <div id="series-results-list"></div>
+        </div>
+        <div id="recording-results-section">
+            <h3>Recording Results</h3>
+            <div id="recording-results-list"></div>
+        </div>
+    </div>
+</div>
 </body>
 </html>
