@@ -13,6 +13,7 @@ import springContents.dao.RecordingDAO;
 import springContents.dao.ShiurSeriesDAO;
 import springContents.model.User;
 import springContents.service.S3Service;
+import springContents.service.SNSService;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -31,14 +32,17 @@ public class RecordingController {
     private final RecordingDAO recordingDAO;
     private final ShiurSeriesDAO shiurSeriesDAO;
     private final S3Service s3Service;
+    private final SNSService snsService;
 
     @Autowired
     public RecordingController(RecordingDAO recordingDAO,
                                ShiurSeriesDAO shiurSeriesDAO,
-                               S3Service s3Service) {
+                               S3Service s3Service,
+                               SNSService snsService) {
         this.recordingDAO = recordingDAO;
         this.shiurSeriesDAO = shiurSeriesDAO;
         this.s3Service = s3Service;
+        this.snsService = snsService;
     }
 
     @GetMapping("/series/{seriesId}/recordings")
@@ -184,6 +188,39 @@ public class RecordingController {
 
             logger.info("Successfully created recording {} for series {} by user {}",
                     recordingId, seriesId, user.getUserId());
+
+            // Send notification to subscribers
+            try {
+                String topicArn = shiurSeriesDAO.getSeriesTopicArn(seriesId);
+                if (topicArn != null && !topicArn.trim().isEmpty()) {
+                    // Get series details for the notification
+                    Map<String, Object> seriesDetails = shiurSeriesDAO.getSeriesDetails(seriesId);
+
+                    if (seriesDetails != null) {
+                        String rebbiName = (String) seriesDetails.get("rebbiName");
+                        String topicName = (String) seriesDetails.get("topicName");
+                        String seriesDescription = (String) seriesDetails.get("description");
+
+                        // Format the recording date for the notification
+                        String formattedDate = recordedAt.format(DateTimeFormatter.ofPattern("MMMM d, yyyy"));
+
+                        snsService.notifyNewRecording(
+                                topicArn,
+                                title.trim(),
+                                rebbiName,
+                                topicName,
+                                seriesDescription,
+                                formattedDate
+                        );
+                        logger.info("Sent notification for new recording {} in series {}",
+                                recordingId, seriesId);
+                    }
+                }
+            } catch (Exception e) {
+                logger.error("Failed to send notification for recording {}, but recording was created",
+                        recordingId, e);
+                // Don't fail the operation if notification fails
+            }
 
             response.put("success", true);
             response.put("recordingId", recordingId);

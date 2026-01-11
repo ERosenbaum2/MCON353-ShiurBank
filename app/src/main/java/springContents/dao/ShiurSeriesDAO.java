@@ -58,9 +58,73 @@ public class ShiurSeriesDAO {
         }
     }
 
+    /**
+     * Update the SNS topic ARN for a series
+     * @param seriesId The series ID
+     * @param topicArn The SNS topic ARN
+     */
+    public void updateSeriesTopicArn(Long seriesId, String topicArn) {
+        String sql = "UPDATE shiur_series SET sns_topic_arn = ? WHERE series_id = ?";
+
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, topicArn);
+            stmt.setLong(2, seriesId);
+
+            int rows = stmt.executeUpdate();
+            if (rows == 0) {
+                throw new SQLException("Updating series topic ARN failed, no rows affected.");
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error updating series topic ARN", e);
+        }
+    }
+
+    /**
+     * Get the SNS topic ARN for a series
+     * @param seriesId The series ID
+     * @return The topic ARN or null if not set
+     */
+    public String getSeriesTopicArn(Long seriesId) {
+        String sql = "SELECT sns_topic_arn FROM shiur_series WHERE series_id = ?";
+
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setLong(1, seriesId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("sns_topic_arn");
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error fetching series topic ARN", e);
+        }
+
+        return null;
+    }
+
+    /**
+     * Delete a series (this will trigger CASCADE delete on related records)
+     * @param seriesId The series ID
+     */
+    public void deleteSeries(Long seriesId) {
+        String sql = "DELETE FROM shiur_series WHERE series_id = ?";
+
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setLong(1, seriesId);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Error deleting series", e);
+        }
+    }
+
     public List<Map<String, Object>> getSeriesForGabbai(Long userId) {
         String sql =
-                "SELECT s.series_id, s.description, " +
+                "SELECT s.series_id, s.description, s.sns_topic_arn, " +
                         "       t.name AS topic_name, " +
                         "       CONCAT(r.title, ' ', r.fname, ' ', r.lname) AS rebbi_name, " +
                         "       i.name AS inst_name, " +
@@ -93,6 +157,7 @@ public class ShiurSeriesDAO {
                     row.put("topicName", topicName);
                     row.put("rebbiName", rebbiName);
                     row.put("institutionName", rs.getString("inst_name"));
+                    row.put("snsTopicArn", rs.getString("sns_topic_arn"));
                     row.put("displayName", topicName + " — " + rebbiName);
                     row.put("isPending", isPending);
 
@@ -108,7 +173,7 @@ public class ShiurSeriesDAO {
 
     public Map<String, Object> getSeriesDetails(Long seriesId) {
         String sql =
-                "SELECT s.series_id, s.description, " +
+                "SELECT s.series_id, s.description, s.sns_topic_arn, " +
                         "       t.name AS topic_name, " +
                         "       CONCAT(r.title, ' ', r.fname, ' ', r.lname) AS rebbi_name, " +
                         "       i.name AS inst_name " +
@@ -130,6 +195,7 @@ public class ShiurSeriesDAO {
                     row.put("topicName", rs.getString("topic_name"));
                     row.put("rebbiName", rs.getString("rebbi_name"));
                     row.put("institutionName", rs.getString("inst_name"));
+                    row.put("snsTopicArn", rs.getString("sns_topic_arn"));
                     row.put("displayName",
                             rs.getString("topic_name") + " — " + rs.getString("rebbi_name"));
                     return row;
@@ -235,7 +301,7 @@ public class ShiurSeriesDAO {
      */
     public List<Map<String, Object>> getAllSeriesForUser(Long userId) {
         String sql =
-                "SELECT s.series_id, s.description, " +
+                "SELECT s.series_id, s.description, s.sns_topic_arn, " +
                         "       t.name AS topic_name, " +
                         "       CONCAT(r.title, ' ', r.fname, ' ', r.lname) AS rebbi_name, " +
                         "       i.name AS inst_name, " +
@@ -272,7 +338,8 @@ public class ShiurSeriesDAO {
                     row.put("topicName", topicName);
                     row.put("rebbiName", rebbiName);
                     row.put("institutionName", rs.getString("inst_name"));
-                    row.put("displayName", topicName + " – " + rebbiName);
+                    row.put("snsTopicArn", rs.getString("sns_topic_arn"));
+                    row.put("displayName", topicName + " — " + rebbiName);
                     row.put("isPending", isPending);
                     row.put("isGabbai", isGabbai);
 

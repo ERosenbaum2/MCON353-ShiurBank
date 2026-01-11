@@ -775,6 +775,106 @@
     display: none;
 }
 
+/* Subscription Button Styles */
+.button-group {
+    display: flex;
+    gap: 1rem;
+    margin: 1rem 0;
+    flex-wrap: wrap;
+}
+
+#subscribe-btn {
+    background-color: #3F88C5;
+    color: white;
+    border: none;
+    padding: 0.75rem 2rem;
+    font-size: 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+#subscribe-btn:hover {
+    background-color: #2d6a9f;
+}
+
+#subscribe-btn.subscribed {
+    background-color: #1B4965;
+}
+
+#subscribe-btn.subscribed:hover {
+    background-color: #0f2d3f;
+}
+
+/* Subscription Modal Styles */
+.subscription-modal-body {
+    padding: 1rem 0;
+}
+
+.subscription-modal-body p {
+    margin-bottom: 1rem;
+    color: #333;
+    line-height: 1.6;
+}
+
+.subscription-form-group {
+    margin-bottom: 1.5rem;
+}
+
+.subscription-form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.subscription-form-group select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-family: inherit;
+    background-color: white;
+    cursor: pointer;
+}
+
+.subscription-form-group select:focus {
+    outline: none;
+    border-color: #3F88C5;
+}
+
+.subscription-warning {
+    background-color: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 4px;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    color: #856404;
+    font-size: 0.9rem;
+}
+
+.subscription-info {
+    background-color: #d1ecf1;
+    border: 1px solid #bee5eb;
+    border-radius: 4px;
+    padding: 0.75rem;
+    margin-top: 1rem;
+    color: #0c5460;
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+.unsubscribe-warning {
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    color: #721c24;
+    font-size: 0.9rem;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .modal-content {

@@ -39,6 +39,7 @@ CREATE TABLE shiur_series (
     requires_permission    BOOLEAN NOT NULL DEFAULT FALSE,
     inst_id                BIGINT NOT NULL,
     description            TEXT NULL,
+    sns_topic_arn          VARCHAR(512) NULL,
     CONSTRAINT fk_series_rebbi FOREIGN KEY (rebbi_id) REFERENCES rebbeim(rebbi_id) ON DELETE RESTRICT,
     CONSTRAINT fk_series_topic FOREIGN KEY (topic_id) REFERENCES topics(topic_id) ON DELETE RESTRICT,
     CONSTRAINT fk_series_inst FOREIGN KEY (inst_id) REFERENCES institutions(inst_id) ON DELETE RESTRICT
@@ -106,6 +107,7 @@ CREATE TABLE subscribers (
     user_id              BIGINT NOT NULL,
     series_id            BIGINT NOT NULL,
     subscription_type_id BIGINT NOT NULL,
+    sns_subscription_arn VARCHAR(512) NULL,
     CONSTRAINT fk_sub_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
     CONSTRAINT fk_sub_series FOREIGN KEY (series_id) REFERENCES shiur_series(series_id) ON DELETE CASCADE,
     CONSTRAINT fk_sub_type FOREIGN KEY (subscription_type_id) REFERENCES subscriber_types(type_id) ON DELETE RESTRICT,
