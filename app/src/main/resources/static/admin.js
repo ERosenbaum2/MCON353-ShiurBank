@@ -17,7 +17,9 @@ document.addEventListener('DOMContentLoaded', async function() {
 async function checkAuthAndAdminStatus() {
     try {
         // First check if user is logged in
-        const userResponse = await fetch('/api/current-user');
+        const userResponse = await fetch('/api/current-user', {
+            credentials: 'include'
+        });
         if (!userResponse.ok) {
             window.location.href = '/dashboard.html';
             return;
@@ -34,7 +36,9 @@ async function checkAuthAndAdminStatus() {
         document.getElementById('user-greeting').classList.remove('hidden');
 
         // Check if user is admin
-        const adminResponse = await fetch('/api/admin/check');
+        const adminResponse = await fetch('/api/admin/check', {
+            credentials: 'include'
+        });
         if (!adminResponse.ok) {
             window.location.href = '/dashboard.html';
             return;
@@ -155,7 +159,7 @@ async function loadDatabaseStatus() {
     try {
         statusDisplay.textContent = 'Loading...';
         const response = await fetch('/api/admin/rds/status');
-        
+
         if (!response.ok) {
             statusDisplay.textContent = 'Error';
             startBtn.disabled = true;
@@ -170,21 +174,17 @@ async function loadDatabaseStatus() {
 
             // Enable/disable buttons based on status
             if (status.toLowerCase() === 'stopped' || status.toLowerCase() === 'available') {
-                // If stopped, enable start button
                 if (status.toLowerCase() === 'stopped') {
                     startBtn.disabled = false;
                     stopBtn.disabled = true;
                 } else {
-                    // If available/running, enable stop button
                     startBtn.disabled = true;
                     stopBtn.disabled = false;
                 }
             } else if (status.toLowerCase() === 'starting' || status.toLowerCase() === 'stopping') {
-                // If transitioning, disable both
                 startBtn.disabled = true;
                 stopBtn.disabled = true;
             } else {
-                // For other statuses, disable both
                 startBtn.disabled = true;
                 stopBtn.disabled = true;
             }
@@ -217,7 +217,6 @@ async function startDatabase() {
 
         const data = await response.json();
         if (data.success) {
-            // Reload status after a short delay
             setTimeout(loadDatabaseStatus, 1000);
         } else {
             alert('Error starting database: ' + (data.message || 'Unknown error'));
@@ -250,7 +249,6 @@ async function stopDatabase() {
 
         const data = await response.json();
         if (data.success) {
-            // Reload status after a short delay
             setTimeout(loadDatabaseStatus, 1000);
         } else {
             alert('Error stopping database: ' + (data.message || 'Unknown error'));
@@ -359,7 +357,6 @@ async function handleVerifyConfirm() {
         if (data.success) {
             modal.classList.add('hidden');
             currentPendingId = null;
-            // Reload the pending permissions list
             await loadPendingPermissions();
         } else {
             alert('Error verifying pending permission: ' + (data.message || 'Unknown error'));
@@ -389,11 +386,9 @@ async function loadAllUsers() {
         }
 
         allUsers = await response.json();
-        
-        // Clear existing options except the first one
+
         userSelect.innerHTML = '<option value="">-- Select a user --</option>';
-        
-        // Add users to dropdown, excluding those who are already admins
+
         allUsers.forEach(function(user) {
             const option = document.createElement('option');
             option.value = user.userId;
@@ -413,7 +408,7 @@ async function loadAllUsers() {
 function handleAddAdminClick() {
     const userSelect = document.getElementById('user-select');
     const selectedValue = userSelect.value;
-    
+
     if (!selectedValue || selectedValue === '') {
         return;
     }
@@ -426,11 +421,11 @@ function handleAddAdminClick() {
     currentUserIdToAdd = selectedUser.userId;
     const modal = document.getElementById('add-admin-modal');
     const messageEl = document.getElementById('add-admin-message');
-    
+
     if (messageEl) {
         messageEl.textContent = `Are you sure you want to add "${selectedUser.displayName}" as a system admin?`;
     }
-    
+
     if (modal) {
         modal.classList.remove('hidden');
     }
@@ -460,11 +455,9 @@ async function handleAddAdminConfirm() {
         if (data.success) {
             modal.classList.add('hidden');
             currentUserIdToAdd = null;
-            
-            // Reload users to update the dropdown
+
             await loadAllUsers();
-            
-            // Reset the select
+
             const userSelect = document.getElementById('user-select');
             if (userSelect) {
                 userSelect.value = '';
@@ -473,7 +466,7 @@ async function handleAddAdminConfirm() {
             if (addAdminBtn) {
                 addAdminBtn.disabled = true;
             }
-            
+
             alert('User successfully added as admin!');
         } else {
             alert('Error adding admin: ' + (data.message || 'Unknown error'));
@@ -495,7 +488,8 @@ async function handleLogout() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
-            }
+            },
+            credentials: 'include'
         });
 
         const data = await response.json();
@@ -510,4 +504,3 @@ async function handleLogout() {
         alert('An error occurred during logout. Please try again.');
     }
 }
-

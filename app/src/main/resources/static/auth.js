@@ -154,7 +154,7 @@ async function verifyDbControlPassword() {
         });
 
         const data = await response.json();
-        
+
         if (!data.success) {
             errorEl.textContent = data.message || 'Invalid password. Please try again.';
             errorEl.style.display = 'block';
@@ -169,10 +169,10 @@ async function verifyDbControlPassword() {
         dbControlPasswordVerified = true;
         document.getElementById('db-control-password-section').style.display = 'none';
         document.getElementById('db-control-content-section').style.display = 'block';
-        
+
         // Store password in sessionStorage for this session
         sessionStorage.setItem('dbControlPassword', password);
-        
+
         // Load database status
         loadDbControlStatus();
     } catch (error) {
@@ -217,12 +217,10 @@ async function loadDbControlStatus() {
 
             // Enable/disable buttons based on status
             if (status === 'stopped') {
-                // Database is stopped - enable start, disable stop
                 startBtn.disabled = false;
                 stopBtn.disabled = true;
                 messageEl.textContent = 'Database is stopped.';
             } else if (status === 'available') {
-                // Database is running - disable start, enable stop
                 startBtn.disabled = true;
                 stopBtn.disabled = false;
                 messageEl.textContent = 'Database is running.';
@@ -237,17 +235,14 @@ async function loadDbControlStatus() {
                        status === 'rebooting' ||
                        status === 'maintenance' ||
                        status === 'storage-optimization') {
-                // Database is starting or in transition - disable both
                 startBtn.disabled = true;
                 stopBtn.disabled = true;
                 messageEl.textContent = 'Database is starting. Please wait 2-5 minutes...';
             } else if (status === 'stopping') {
-                // Database is stopping - disable both
                 startBtn.disabled = true;
                 stopBtn.disabled = true;
                 messageEl.textContent = 'Database is stopping. Please wait...';
             } else {
-                // Unknown status - disable both for safety
                 startBtn.disabled = true;
                 stopBtn.disabled = true;
                 messageEl.textContent = `Status: ${status}`;
@@ -270,15 +265,15 @@ async function loadDbControlStatus() {
 async function startDbControlDatabase() {
     const startBtn = document.getElementById('db-control-start-btn');
     const messageEl = document.getElementById('db-control-message');
-    
+
     if (!startBtn) return;
-    
+
     const password = sessionStorage.getItem('dbControlPassword');
     if (!password) {
         messageEl.textContent = 'Password not found. Please close and reopen the modal.';
         return;
     }
-    
+
     startBtn.disabled = true;
     startBtn.textContent = 'Starting...';
     messageEl.textContent = 'Starting database... This may take 2-5 minutes.';
@@ -296,7 +291,6 @@ async function startDbControlDatabase() {
         if (data.success) {
             messageEl.textContent = 'Database start initiated! Please wait 2-5 minutes.';
             setTimeout(loadDbControlStatus, 2000);
-            // Also check homepage status
             setTimeout(checkHomepageDatabaseStatus, 2000);
         } else {
             messageEl.textContent = 'Error: ' + (data.message || 'Failed to start database');
@@ -315,15 +309,15 @@ async function startDbControlDatabase() {
 async function stopDbControlDatabase() {
     const stopBtn = document.getElementById('db-control-stop-btn');
     const messageEl = document.getElementById('db-control-message');
-    
+
     if (!stopBtn) return;
-    
+
     const password = sessionStorage.getItem('dbControlPassword');
     if (!password) {
         messageEl.textContent = 'Password not found. Please close and reopen the modal.';
         return;
     }
-    
+
     stopBtn.disabled = true;
     stopBtn.textContent = 'Stopping...';
     messageEl.textContent = 'Stopping database...';
@@ -341,7 +335,6 @@ async function stopDbControlDatabase() {
         if (data.success) {
             messageEl.textContent = 'Database stop initiated.';
             setTimeout(loadDbControlStatus, 2000);
-            // Also check homepage status
             setTimeout(checkHomepageDatabaseStatus, 2000);
         } else {
             messageEl.textContent = 'Error: ' + (data.message || 'Failed to stop database');
@@ -360,12 +353,19 @@ async function stopDbControlDatabase() {
 // Check if user is already logged in
 async function checkIfAlreadyLoggedIn() {
     try {
-        const response = await fetch('/api/current-user');
+        const response = await fetch('/api/current-user', {
+            credentials: 'include'
+        });
+
         if (response.ok) {
             const data = await response.json();
+
             if (data.loggedIn) {
                 // User is already logged in, redirect to dashboard
-                window.location.href = '/dashboard.html';
+                // Only redirect if we're not already on the dashboard
+                if (window.location.pathname !== '/dashboard.html') {
+                    window.location.href = '/dashboard.html';
+                }
             }
         }
     } catch (error) {
@@ -387,7 +387,6 @@ async function loadInstitutions() {
             }
             container.innerHTML = '';
             institutions.forEach(inst => {
-                // Create a wrapper div for each checkbox
                 const wrapper = document.createElement('div');
                 wrapper.style.marginBottom = '0.5rem';
                 wrapper.style.display = 'flex';
@@ -413,7 +412,6 @@ async function loadInstitutions() {
             institutionsLoaded = true;
         } else {
             console.error('Failed to load institutions:', response.status);
-            // Don't mark as loaded if it failed
             institutionsLoaded = false;
         }
     } catch (error) {
@@ -434,29 +432,46 @@ async function handleLogin(event) {
             headers: {
                 'Content-Type': 'application/json'
             },
+            credentials: 'include',
             body: JSON.stringify({ username, password })
         });
 
-        // Check if response is not OK (might be 500 if DB is down)
         if (!response.ok && response.status === 500) {
             alert('Database connection error. The database might be down. Please check the database status and start it if needed.');
-            loadHomepageDatabaseStatus(); // Refresh status
+            checkHomepageDatabaseStatus();
             return;
         }
 
         const data = await response.json();
 
         if (data.success) {
-            // Redirect to dashboard
-            window.location.href = '/dashboard.html';
+            // Verify session is set before redirecting
+            const verifyResponse = await fetch('/api/current-user', {
+                credentials: 'include'
+            });
+
+            if (verifyResponse.ok) {
+                const verifyData = await verifyResponse.json();
+
+                if (verifyData.loggedIn) {
+                    // Small delay to ensure cookie is fully set
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    window.location.href = '/dashboard.html';
+                } else {
+                    console.error('Login succeeded but session not established');
+                    alert('Login succeeded but session not established. Please try again.');
+                }
+            } else {
+                console.error('Failed to verify session after login');
+                alert('Login succeeded but could not verify session. Please try again.');
+            }
         } else {
-            // Check if error message suggests DB connection issue
             const errorMsg = data.message || 'Login failed';
-            if (errorMsg.toLowerCase().includes('connection') || 
+            if (errorMsg.toLowerCase().includes('connection') ||
                 errorMsg.toLowerCase().includes('database') ||
                 errorMsg.toLowerCase().includes('sql')) {
                 alert('Database connection error: ' + errorMsg + '\n\nPlease check the database status and start it if needed.');
-                loadHomepageDatabaseStatus();
+                checkHomepageDatabaseStatus();
             } else {
                 alert(errorMsg);
             }
@@ -464,7 +479,7 @@ async function handleLogin(event) {
     } catch (error) {
         console.error('Error during login:', error);
         alert('Connection error. The database might be down. Please check the database status above and start it if needed.');
-        loadHomepageDatabaseStatus();
+        checkHomepageDatabaseStatus();
     }
 }
 
@@ -473,10 +488,7 @@ async function handleCreateAccount(event) {
 
     // Get selected institutions from checkboxes BEFORE clearing errors
     const institutionCheckboxes = document.querySelectorAll('#institutions-container input[type="checkbox"]:checked');
-
-    const selectedInstitutions = Array.from(institutionCheckboxes).map(cb => {
-        return parseInt(cb.value);
-    });
+    const selectedInstitutions = Array.from(institutionCheckboxes).map(cb => parseInt(cb.value));
 
     // Clear previous errors (AFTER reading checkbox values)
     clearErrors();
@@ -505,14 +517,32 @@ async function handleCreateAccount(event) {
             headers: {
                 'Content-Type': 'application/json'
             },
+            credentials: 'include',
             body: JSON.stringify(accountData)
         });
 
         const data = await response.json();
 
         if (data.success) {
-            // Redirect to dashboard
-            window.location.href = '/dashboard.html';
+            // Verify session is set before redirecting
+            const verifyResponse = await fetch('/api/current-user', {
+                credentials: 'include'
+            });
+
+            if (verifyResponse.ok) {
+                const verifyData = await verifyResponse.json();
+                if (verifyData.loggedIn) {
+                    // Small delay to ensure cookie is fully set
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    window.location.href = '/dashboard.html';
+                } else {
+                    console.error('Account creation succeeded but session not established');
+                    alert('Account created but session not established. Please try logging in.');
+                }
+            } else {
+                console.error('Failed to verify session after account creation');
+                alert('Account created but could not verify session. Please try logging in.');
+            }
         } else {
             // Display validation errors
             if (data.errors) {
@@ -532,7 +562,6 @@ function clearErrors() {
     errorMessages.forEach(span => span.textContent = '');
     const inputs = document.querySelectorAll('#create-account-form input, #create-account-form select');
     inputs.forEach(input => input.classList.remove('error'));
-    // Don't clear checkboxes here - that should only happen when the form is reset
 }
 
 function displayErrors(errors) {
@@ -557,7 +586,6 @@ async function checkHomepageDatabaseStatus() {
         const response = await fetch('/api/admin/rds/status');
 
         if (!response.ok) {
-            // Database check failed
             isDatabaseAvailable = false;
             loginBtn.disabled = true;
             loginBtn.textContent = 'Database Offline';
@@ -569,9 +597,7 @@ async function checkHomepageDatabaseStatus() {
         if (data.success) {
             const status = (data.status || 'unknown').toLowerCase();
 
-            // Check if database is fully available
             if (status === 'available') {
-                // Database is fully available - enable button and load institutions
                 isDatabaseAvailable = true;
                 loginBtn.disabled = false;
                 loginBtn.textContent = 'Login / Create Account';
@@ -580,7 +606,6 @@ async function checkHomepageDatabaseStatus() {
                 // Load institutions only once when database becomes available
                 if (!institutionsLoaded) {
                     await loadInstitutions();
-                    institutionsLoaded = true;
                 }
             } else if (status === 'starting' ||
                        status === 'configuring-enhanced-monitoring' ||
@@ -593,19 +618,16 @@ async function checkHomepageDatabaseStatus() {
                        status === 'rebooting' ||
                        status === 'maintenance' ||
                        status === 'storage-optimization') {
-                // Database is in transition state
                 isDatabaseAvailable = false;
                 loginBtn.disabled = true;
                 loginBtn.textContent = 'Database Starting...';
                 loginBtn.classList.add('db-offline');
             } else if (status === 'stopped' || status === 'stopping') {
-                // Database is stopped or stopping
                 isDatabaseAvailable = false;
                 loginBtn.disabled = true;
                 loginBtn.textContent = 'Database Offline';
                 loginBtn.classList.add('db-offline');
             } else {
-                // Any other status - disable for safety
                 isDatabaseAvailable = false;
                 loginBtn.disabled = true;
                 loginBtn.textContent = 'Database Unavailable';

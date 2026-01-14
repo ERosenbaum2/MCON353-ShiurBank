@@ -11,7 +11,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function checkAuthAndShowPage() {
   try {
-    const response = await fetch('/api/current-user');
+    const response = await fetch('/api/current-user', {
+      credentials: 'include'
+    });
     if (!response.ok) throw new Error('Auth check failed');
     const data = await response.json();
     if (!data.loggedIn) {
@@ -31,7 +33,8 @@ async function handleLogout() {
   try {
     const response = await fetch('/api/logout', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include'
     });
     const data = await response.json();
     if (data.success) {
@@ -67,7 +70,6 @@ async function loadRebbeim() {
   if (!select) {
     return;
   }
-  // Clear any existing options except the placeholder
   select.innerHTML = '<option value="">Select a Rebbi</option>';
   try {
     const resp = await fetch('/api/rebbeim');
@@ -168,7 +170,6 @@ async function handleCreateSeries(event) {
     const username = usernameInput ? usernameInput.value.trim() : '';
     const password = passwordInput ? passwordInput.value : '';
 
-    // If one of username/password is filled, require both
     if ((username && !password) || (!username && password)) {
       alert('Each additional gabbai must have both a username and a password, or be left completely blank.');
       return;
@@ -209,12 +210,9 @@ async function handleCreateSeries(event) {
     const seriesId = data.seriesId;
     const needsVerification = data.needsVerification;
 
-    // Redirect based on verification status
     if (needsVerification) {
-      // Series is pending approval, redirect to dashboard
       window.location.href = '/dashboard.html';
     } else {
-      // Series was automatically approved, redirect to series page
       window.location.href = `/series/${encodeURIComponent(seriesId)}`;
     }
   } catch (error) {

@@ -29,7 +29,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const urlParams = new URLSearchParams(window.location.search);
   const recordingId = urlParams.get('recording');
   if (recordingId) {
-    // Wait a bit for recordings to load, then find and play the specified recording
     setTimeout(() => {
       autoPlayRecording(parseInt(recordingId));
     }, 500);
@@ -61,7 +60,9 @@ function getSeriesIdFromPath() {
 
 async function checkAuthAndShowPage() {
   try {
-    const response = await fetch('/api/current-user');
+    const response = await fetch('/api/current-user', {
+      credentials: 'include'
+    });
     if (!response.ok) throw new Error('Auth check failed');
     const data = await response.json();
     if (!data.loggedIn) {
@@ -82,7 +83,8 @@ async function handleLogout() {
   try {
     const response = await fetch('/api/logout', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include'
     });
     const data = await response.json();
     if (data.success) {
@@ -98,7 +100,9 @@ async function handleLogout() {
 
 async function loadSeriesDetails(seriesId) {
   try {
-    const resp = await fetch(`/api/series/${seriesId}`);
+    const resp = await fetch(`/api/series/${seriesId}`, {
+      credentials: 'include'
+    });
     if (!resp.ok) throw new Error('Failed to load series');
     const s = await resp.json();
 
@@ -119,12 +123,13 @@ async function loadSeriesDetails(seriesId) {
 
 async function checkGabbaiStatus(seriesId) {
   try {
-    const resp = await fetch(`/api/series/${seriesId}/is-gabbai`);
+    const resp = await fetch(`/api/series/${seriesId}/is-gabbai`, {
+      credentials: 'include'
+    });
     if (!resp.ok) return;
     const data = await resp.json();
     if (data.isGabbai) {
       document.getElementById('upload-shiur-btn').classList.remove('hidden');
-      // Load participants and pending participants if user is gabbai
       await loadParticipants(seriesId);
       await loadPendingParticipants(seriesId);
     }
@@ -147,7 +152,9 @@ async function loadParticipants(seriesId) {
   listDiv.innerHTML = '';
 
   try {
-    const resp = await fetch(`/api/series/${seriesId}/participants`);
+    const resp = await fetch(`/api/series/${seriesId}/participants`, {
+      credentials: 'include'
+    });
     if (!resp.ok) throw new Error('Failed to load participants');
     const data = await resp.json();
 
@@ -195,7 +202,6 @@ function createParticipantItem(participant) {
   const actions = document.createElement('div');
   actions.className = 'participant-actions';
 
-  // Only show "Add as Gabbai" button if user is not already a gabbai
   if (!participant.isGabbai) {
     const addGabbaiBtn = document.createElement('button');
     addGabbaiBtn.className = 'btn-add-gabbai';
@@ -204,7 +210,6 @@ function createParticipantItem(participant) {
     actions.appendChild(addGabbaiBtn);
   }
 
-  // Don't allow removing yourself
   if (participant.userId !== currentUserId) {
     const removeBtn = document.createElement('button');
     removeBtn.className = 'btn-remove-participant';
@@ -240,19 +245,18 @@ async function confirmRemoveParticipant() {
     const response = await fetch(`/api/series/${currentSeriesId}/remove-participant`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ userId: pendingRemoveUserId })
     });
 
     const data = await response.json();
 
     if (data.success) {
-      // Remove the item from the list
       const item = document.querySelector(`.participant-item[data-user-id="${pendingRemoveUserId}"]`);
       if (item) {
         item.remove();
       }
 
-      // Check if list is now empty
       const listDiv = document.getElementById('participants-list');
       if (listDiv.children.length === 0) {
         listDiv.innerHTML = '<div class="no-participants">No participants in this series yet.</div>';
@@ -290,6 +294,7 @@ async function confirmAddGabbai() {
     const response = await fetch(`/api/series/${currentSeriesId}/add-gabbai`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ userId: pendingAddGabbaiUserId })
     });
 
@@ -298,7 +303,6 @@ async function confirmAddGabbai() {
     if (data.success) {
       closeAddGabbaiModal();
       alert(`${pendingAddGabbaiUserName} has been added as a gabbai for this series.`);
-      // Reload participants to update the UI (hide "Add as Gabbai" button)
       await loadParticipants(currentSeriesId);
     } else {
       alert('Error: ' + (data.message || 'Failed to add gabbai'));
@@ -323,7 +327,9 @@ async function loadPendingParticipants(seriesId) {
   listDiv.innerHTML = '';
 
   try {
-    const resp = await fetch(`/api/series/${seriesId}/pending-participants`);
+    const resp = await fetch(`/api/series/${seriesId}/pending-participants`, {
+      credentials: 'include'
+    });
     if (!resp.ok) throw new Error('Failed to load pending participants');
     const data = await resp.json();
 
@@ -399,27 +405,24 @@ async function approveParticipant(userId) {
     const response = await fetch(`/api/series/${currentSeriesId}/approve-participant`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ userId: userId })
     });
 
     const data = await response.json();
 
     if (data.success) {
-      // Remove the item from the pending list
       const item = document.querySelector(`.pending-participant-item[data-user-id="${userId}"]`);
       if (item) {
         item.remove();
       }
 
-      // Check if pending list is now empty
       const listDiv = document.getElementById('pending-participants-list');
       if (listDiv.children.length === 0) {
         listDiv.innerHTML = '<div class="no-pending-participants">No pending participant requests at this time.</div>';
       }
 
       alert('Participant approved successfully!');
-
-      // Reload participants list to show the newly approved participant
       await loadParticipants(currentSeriesId);
     } else {
       alert('Error: ' + (data.message || 'Failed to approve participant'));
@@ -439,19 +442,18 @@ async function rejectParticipant(userId) {
     const response = await fetch(`/api/series/${currentSeriesId}/reject-participant`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ userId: userId })
     });
 
     const data = await response.json();
 
     if (data.success) {
-      // Remove the item from the list
       const item = document.querySelector(`.pending-participant-item[data-user-id="${userId}"]`);
       if (item) {
         item.remove();
       }
 
-      // Check if list is now empty
       const listDiv = document.getElementById('pending-participants-list');
       if (listDiv.children.length === 0) {
         listDiv.innerHTML = '<div class="no-pending-participants">No pending participant requests at this time.</div>';
@@ -471,7 +473,6 @@ async function rejectParticipant(userId) {
 
 function openUploadModal() {
   document.getElementById('upload-modal').classList.add('active');
-  // Set default date/time to now
   const now = new Date();
   const localDateTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
     .toISOString()
@@ -511,18 +512,15 @@ function handleFileSelect(event) {
 }
 
 async function submitUpload() {
-  // Hide previous messages
   document.getElementById('success-message').classList.remove('active');
   document.getElementById('error-message').classList.remove('active');
 
-  // Validate form
   const form = document.getElementById('upload-form');
   if (!form.checkValidity()) {
     form.reportValidity();
     return;
   }
 
-  // Get form data
   const title = document.getElementById('title').value.trim();
   const recordedAt = document.getElementById('recorded-at').value;
   const keyword1 = document.getElementById('keyword1').value.trim();
@@ -539,14 +537,10 @@ async function submitUpload() {
     return;
   }
 
-  // Disable submit button
   document.getElementById('submit-upload-btn').disabled = true;
-
-  // Show progress container
   document.getElementById('progress-container').classList.add('active');
   document.getElementById('progress-text').textContent = 'Preparing upload...';
 
-  // Create FormData
   const formData = new FormData();
   formData.append('title', title);
   formData.append('recordedAt', recordedAt);
@@ -562,10 +556,8 @@ async function submitUpload() {
   formData.append('audioFile', audioFile);
 
   try {
-    // Create XMLHttpRequest for progress tracking
     const xhr = new XMLHttpRequest();
 
-    // Track upload progress
     xhr.upload.addEventListener('progress', (e) => {
       if (e.lengthComputable) {
         const percentComplete = Math.round((e.loaded / e.total) * 100);
@@ -573,7 +565,6 @@ async function submitUpload() {
       }
     });
 
-    // Handle completion
     xhr.addEventListener('load', () => {
       if (xhr.status === 200) {
         const response = JSON.parse(xhr.responseText);
@@ -582,7 +573,6 @@ async function submitUpload() {
           showSuccess(response.message || 'Shiur uploaded successfully!');
           setTimeout(() => {
             closeUploadModal();
-            // Reload recordings list to show the new upload
             loadRecordings();
           }, 2000);
         } else {
@@ -596,7 +586,6 @@ async function submitUpload() {
       }
     });
 
-    // Handle errors
     xhr.addEventListener('error', () => {
       showError('Network error occurred. Please try again.');
       document.getElementById('submit-upload-btn').disabled = false;
@@ -607,7 +596,6 @@ async function submitUpload() {
       document.getElementById('submit-upload-btn').disabled = false;
     });
 
-    // Send request
     xhr.open('POST', `/api/series/${currentSeriesId}/recordings`);
     xhr.send(formData);
 
@@ -652,7 +640,9 @@ async function loadRecordings() {
   listDiv.innerHTML = '';
 
   try {
-    const resp = await fetch(`/api/series/${currentSeriesId}/recordings?sort=${sortOrder}`);
+    const resp = await fetch(`/api/series/${currentSeriesId}/recordings?sort=${sortOrder}`, {
+      credentials: 'include'
+    });
     if (!resp.ok) throw new Error('Failed to load recordings');
     const data = await resp.json();
 
@@ -683,11 +673,9 @@ function createRecordingItem(recording) {
   item.dataset.recordingId = recording.recordingId;
   item.dataset.s3FilePath = recording.s3FilePath;
 
-  // Format date
   const recordedDate = new Date(recording.recordedAt);
   const formattedDate = formatRecordingDate(recordedDate);
 
-  // Create header
   const header = document.createElement('div');
   header.className = 'recording-header';
   header.onclick = () => toggleRecordingDetails(recording.recordingId);
@@ -716,7 +704,6 @@ function createRecordingItem(recording) {
   header.appendChild(playBtn);
   header.appendChild(info);
 
-  // Create details section
   const details = document.createElement('div');
   details.className = 'recording-details';
 
@@ -731,7 +718,6 @@ function createRecordingItem(recording) {
 
   details.appendChild(description);
 
-  // Create player section (will be populated when expanded)
   const playerDiv = document.createElement('div');
   playerDiv.className = 'recording-player';
   playerDiv.id = `player-${recording.recordingId}`;
@@ -760,16 +746,13 @@ function toggleRecordingDetails(recordingId) {
   const item = document.querySelector(`.recording-item[data-recording-id="${recordingId}"]`);
   const wasExpanded = item.classList.contains('expanded');
 
-  // Collapse all items
   document.querySelectorAll('.recording-item').forEach(i => {
     i.classList.remove('expanded');
   });
 
-  // Expand this item if it wasn't already expanded
   if (!wasExpanded) {
     item.classList.add('expanded');
 
-    // If this is the currently playing recording, show the player
     if (currentRecordingId === recordingId) {
       showPlayerInRecording(recordingId);
     }
@@ -779,16 +762,13 @@ function toggleRecordingDetails(recordingId) {
 function togglePlayRecording(recordingId, s3FilePath) {
   const item = document.querySelector(`.recording-item[data-recording-id="${recordingId}"]`);
 
-  // If this recording is already playing, pause it
   if (currentRecordingId === recordingId && !mainAudio.paused) {
     mainAudio.pause();
     return;
   }
 
-  // Otherwise, play this recording
   playRecording(recordingId, s3FilePath);
 
-  // Expand the item if not already expanded
   if (!item.classList.contains('expanded')) {
     toggleRecordingDetails(recordingId);
   }
@@ -797,25 +777,19 @@ function togglePlayRecording(recordingId, s3FilePath) {
 function playRecording(recordingId, s3FilePath) {
   currentRecordingId = recordingId;
 
-  // Update UI
   updateAllPlayButtons();
-
-  // Show player in the expanded recording
   showPlayerInRecording(recordingId);
 
-  // Disable play button until loaded
   const playPauseBtn = document.getElementById(`play-pause-${recordingId}`);
   if (playPauseBtn) {
     playPauseBtn.disabled = true;
     playPauseBtn.textContent = '⏳';
   }
 
-  // Load and play audio
   const streamUrl = `/api/audio/series/${currentSeriesId}/stream/${encodeURIComponent(s3FilePath)}`;
   mainAudio.src = streamUrl;
   mainAudio.load();
 
-  // Wait for duration to be available before playing
   const tryPlay = () => {
     if (mainAudio.duration && isFinite(mainAudio.duration)) {
       mainAudio.play();
@@ -823,7 +797,6 @@ function playRecording(recordingId, s3FilePath) {
         playPauseBtn.disabled = false;
       }
     } else {
-      // Try again in a short interval
       setTimeout(tryPlay, 100);
     }
   };
@@ -832,15 +805,12 @@ function playRecording(recordingId, s3FilePath) {
 }
 
 function showPlayerInRecording(recordingId) {
-  // Hide all players
   document.querySelectorAll('.recording-player').forEach(p => p.style.display = 'none');
 
-  // Show and populate player for this recording
   const playerDiv = document.getElementById(`player-${recordingId}`);
   if (playerDiv) {
     playerDiv.style.display = 'block';
 
-    // Only create controls if they don't exist
     if (!playerDiv.querySelector('.player-controls')) {
       const title = document.createElement('h4');
       title.textContent = 'Now Playing';
@@ -858,7 +828,6 @@ function createPlayerControls(recordingId) {
   const controls = document.createElement('div');
   controls.className = 'player-controls';
 
-  // Playback controls
   const playbackDiv = document.createElement('div');
   playbackDiv.className = 'playback-controls';
 
@@ -1124,7 +1093,9 @@ function autoPlayRecording(recordingId) {
 
 async function loadSubscriberTypes() {
   try {
-    const response = await fetch('/api/subscription/types');
+    const response = await fetch('/api/subscription/types', {
+        credentials: 'include'
+    });
     if (!response.ok) throw new Error('Failed to load subscriber types');
 
     const data = await response.json();
@@ -1157,7 +1128,8 @@ async function checkSubscriptionStatus() {
     // First try to sync with AWS to see if subscription was confirmed
     const syncResponse = await fetch(`/api/subscription/series/${currentSeriesId}/sync-status`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include'
     });
 
     if (syncResponse.ok) {
@@ -1171,7 +1143,9 @@ async function checkSubscriptionStatus() {
     }
 
     // Fallback to regular status check if sync fails
-    const response = await fetch(`/api/subscription/series/${currentSeriesId}/status`);
+    const response = await fetch(`/api/subscription/series/${currentSeriesId}/status`, {
+      credentials: 'include'
+    });
     if (!response.ok) throw new Error('Failed to check subscription status');
 
     const data = await response.json();
@@ -1243,6 +1217,7 @@ async function confirmSubscribe() {
     const response = await fetch(`/api/subscription/series/${currentSeriesId}/subscribe`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ subscriptionTypeId: subscriptionTypeId })
     });
 
@@ -1277,7 +1252,8 @@ async function confirmUnsubscribe() {
   try {
     const response = await fetch(`/api/subscription/series/${currentSeriesId}/unsubscribe`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include'
     });
 
     const data = await response.json();

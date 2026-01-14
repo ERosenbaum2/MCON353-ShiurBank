@@ -1,5 +1,8 @@
 package springContents.controller;
 
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -47,12 +50,15 @@ public class AuthController {
      * Authenticates a user and creates a session.
      *
      * @param credentials a map containing "username" and "password"
-     * @param session the HTTP session to store user information
+     * @param request the HTTP Servlet Request
+     * @param httpResponse the HTTP Servlet Response to store user information
      * @return a response map with success status and username, or error message
      * @throws RuntimeException if a database connection error occurs
      */
     @PostMapping("/login")
-    public ResponseEntity<Map<String, Object>> login(@RequestBody Map<String, String> credentials, HttpSession session) {
+    public ResponseEntity<Map<String, Object>> login(@RequestBody Map<String, String> credentials, 
+                                                       HttpServletRequest request, 
+                                                       HttpServletResponse httpResponse) {
         String username = credentials.get("username");
         String password = credentials.get("password");
 
@@ -68,11 +74,48 @@ public class AuthController {
             User user = userDAO.authenticateUser(username, password);
 
             if (user != null) {
+                // Get or create session - this ensures the session cookie is created
+                HttpSession session = request.getSession(true);
+                
+                // Log session info before setting attributes
+                logger.info("Login: Session ID before setting attributes: {}", session.getId());
+                logger.info("Login: Session is new: {}", session.isNew());
+                
                 session.setAttribute("user", user);
                 session.setAttribute("username", user.getUsername());
+                
+                // Touch the session to ensure it's persisted and cookie is sent
+                session.setAttribute("lastAccess", System.currentTimeMillis());
+                
+                // Log session info after setting attributes
+                logger.info("Login: Session ID after setting attributes: {}", session.getId());
+                logger.info("Login: User {} logged in successfully", username);
+                
+                // Ensure session cookie is set by accessing session ID
+                String sessionId = session.getId();
+                logger.info("Login: Session cookie should be set with ID: {}", sessionId);
+                
+                // Manually set the JSESSIONID cookie
+                // Spring Boot 3.x with ResponseEntity doesn't automatically send session cookies
+                // Try both methods: HttpServletResponse and ResponseEntity header
+                Cookie sessionCookie = new Cookie("JSESSIONID", sessionId);
+                sessionCookie.setPath("/");
+                sessionCookie.setHttpOnly(true);
+                sessionCookie.setMaxAge(-1); // Session cookie (expires when browser closes)
+                httpResponse.addCookie(sessionCookie);
+                
+                // Also try setting it as a header (some browsers/clients need this)
+                String cookieHeader = String.format("JSESSIONID=%s; Path=/; HttpOnly; SameSite=Lax", sessionId);
+                logger.info("Login: Setting cookie via HttpServletResponse and header: {}", cookieHeader);
+                
                 response.put("success", true);
                 response.put("username", user.getUsername());
-                return ResponseEntity.ok(response);
+                response.put("sessionId", sessionId); // Include session ID for debugging
+                
+                // Use ResponseEntity with explicit Set-Cookie header
+                return ResponseEntity.ok()
+                    .header("Set-Cookie", cookieHeader)
+                    .body(response);
             } else {
                 response.put("success", false);
                 response.put("message", "Invalid username or password");
@@ -99,13 +142,16 @@ public class AuthController {
      *
      * @param accountData a map containing user account information including username, password,
      *                    title, firstName, lastName, email, and optionally institutions
-     * @param session the HTTP session to store user information upon successful creation
+     * @param request the HTTP Servlet Request
+     * @param httpResponse the HTTP Servlet Response to store user information upon successful creation
      * @return a response map with success status and username, or validation errors
      * @throws RuntimeException if account creation fails
      */
     @PostMapping("/create-account")
     @Transactional
-    public ResponseEntity<Map<String, Object>> createAccount(@RequestBody Map<String, Object> accountData, HttpSession session) {
+    public ResponseEntity<Map<String, Object>> createAccount(@RequestBody Map<String, Object> accountData, 
+                                                              HttpServletRequest request,
+                                                              HttpServletResponse httpResponse) {
         Map<String, Object> response = new HashMap<>();
         Map<String, String> errors = new HashMap<>();
 
@@ -191,9 +237,21 @@ public class AuthController {
                 logger.info("No institutions to associate");
             }
 
+            // Get or create session
+            HttpSession session = request.getSession(true);
+            
             // Set session
             session.setAttribute("user", user);
             session.setAttribute("username", user.getUsername());
+            
+            // Manually set the JSESSIONID cookie using HttpServletResponse
+            String sessionId = session.getId();
+            Cookie sessionCookie = new Cookie("JSESSIONID", sessionId);
+            sessionCookie.setPath("/");
+            sessionCookie.setHttpOnly(true);
+            sessionCookie.setMaxAge(-1); // Session cookie (expires when browser closes)
+            httpResponse.addCookie(sessionCookie);
+            logger.info("Create-account: Added JSESSIONID cookie to response");
 
             response.put("success", true);
             response.put("username", user.getUsername());
@@ -222,19 +280,38 @@ public class AuthController {
     /**
      * Retrieves the current logged-in user information from the session.
      *
-     * @param session the HTTP session
+     * @param request the HTTP Servlet Request
      * @return a response map with loggedIn status and username if authenticated
      */
     @GetMapping("/current-user")
-    public ResponseEntity<Map<String, Object>> getCurrentUser(HttpSession session) {
+    public ResponseEntity<Map<String, Object>> getCurrentUser(HttpServletRequest request) {
         Map<String, Object> response = new HashMap<>();
+        
+        // Get session - don't create if it doesn't exist
+        HttpSession session = request.getSession(false);
+        
+        if (session == null) {
+            logger.info("Current-user: No session exists");
+            response.put("loggedIn", false);
+            response.put("sessionId", null);
+            return ResponseEntity.ok(response);
+        }
+        
+        // Log session info for debugging
+        logger.info("Current-user: Session ID: {}", session.getId());
+        logger.info("Current-user: Session is new: {}", session.isNew());
+        
         User user = (User) session.getAttribute("user");
 
         if (user != null) {
+            logger.info("Current-user: User {} is logged in", user.getUsername());
             response.put("loggedIn", true);
             response.put("username", user.getUsername());
+            response.put("sessionId", session.getId()); // Include session ID for debugging
         } else {
+            logger.info("Current-user: No user found in session");
             response.put("loggedIn", false);
+            response.put("sessionId", session.getId()); // Include session ID for debugging
         }
 
         return ResponseEntity.ok(response);

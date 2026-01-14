@@ -5,6 +5,11 @@ let totalPages = 0;
 let currentApplicationSeriesId = null;
 
 document.addEventListener('DOMContentLoaded', async function() {
+    // Only run search.js functionality on search.html page
+    if (window.location.pathname !== '/search.html') {
+        return;
+    }
+    
     await checkAuthAndShowPage();
 
     // Get query from URL parameters
@@ -13,21 +18,34 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     if (query) {
         currentQuery = query;
-        document.getElementById('search-input').value = query;
-        await performSearch();
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) {
+            searchInput.value = query;
+            await performSearch();
+        }
     }
 
     // Set up enter key handler for search input
-    document.getElementById('search-input').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            performSearch();
-        }
-    });
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        });
+    }
 });
 
 async function checkAuthAndShowPage() {
+    // Only run on search.html page
+    if (window.location.pathname !== '/search.html') {
+        return;
+    }
+
     try {
-        const response = await fetch('/api/current-user');
+        const response = await fetch('/api/current-user', {
+            credentials: 'include'
+        });
         if (!response.ok) throw new Error('Auth check failed');
         const data = await response.json();
 
@@ -36,9 +54,13 @@ async function checkAuthAndShowPage() {
             return;
         }
 
-        document.getElementById('username-display').textContent = data.username;
-        document.getElementById('user-greeting').classList.remove('hidden');
-        document.getElementById('search-main').classList.remove('hidden');
+        const usernameDisplay = document.getElementById('username-display');
+        const userGreeting = document.getElementById('user-greeting');
+        const searchMain = document.getElementById('search-main');
+
+        if (usernameDisplay) usernameDisplay.textContent = data.username;
+        if (userGreeting) userGreeting.classList.remove('hidden');
+        if (searchMain) searchMain.classList.remove('hidden');
     } catch (error) {
         console.error('Error checking auth:', error);
         window.location.href = '/index.html';
@@ -49,7 +71,8 @@ async function handleLogout() {
     try {
         const response = await fetch('/api/logout', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include'
         });
 
         const data = await response.json();
@@ -127,8 +150,6 @@ function displayResults(results, query) {
     const resultsContainer = document.getElementById('results-container');
 
     container.innerHTML = '';
-
-    // Update title
     document.getElementById('results-title').textContent = `Search Results for "${query}"`;
 
     results.forEach(result => {
@@ -143,7 +164,6 @@ function createResultItem(result) {
     const item = document.createElement('div');
     item.className = 'result-item';
 
-    // Check for pending application status
     const hasPendingApplication = result.hasPendingApplication === true;
 
     if (hasPendingApplication) {
@@ -206,7 +226,6 @@ function createResultItem(result) {
         viewBtn.onclick = () => handleResultClick(result);
         actions.appendChild(viewBtn);
     } else if (hasPendingApplication) {
-        // Show pending badge
         const pendingBadge = document.createElement('div');
         pendingBadge.className = 'pending-application-badge';
         pendingBadge.textContent = 'Application Pending';
@@ -243,17 +262,14 @@ function handleResultClick(result) {
     if (result.type === 'SERIES') {
         window.location.href = `/series/${result.id}`;
     } else if (result.type === 'RECORDING') {
-        // Navigate to series page with recording ID
         window.location.href = `/series/${result.seriesId}?recording=${result.id}`;
     }
 }
 
 async function openApplyModal(result) {
-    // Determine the series ID
     const seriesId = result.type === 'SERIES' ? result.id : result.seriesId;
     currentApplicationSeriesId = seriesId;
 
-    // Show loading state in modal
     const modal = document.getElementById('apply-modal');
     const modalBody = modal.querySelector('.modal-body');
     modalBody.innerHTML = '<p style="text-align: center; padding: 2rem;">Loading series information...</p>';
@@ -268,21 +284,18 @@ async function openApplyModal(result) {
             return;
         }
 
-        // Check if already a participant
         if (data.isParticipant) {
             modalBody.innerHTML = '<p style="color: #27ae60; font-weight: 600;">You are already a participant in this series.</p>';
             updateModalFooter(false, true);
             return;
         }
 
-        // Check if has pending application
         if (data.hasPendingApplication) {
             modalBody.innerHTML = '<p style="color: #f39c12; font-weight: 600;">You already have a pending application for this series. Please wait for the Gabbai to review your request.</p>';
             updateModalFooter(false, true);
             return;
         }
 
-        // Build modal content
         const seriesInfo = data.seriesInfo;
         const gabbaim = data.gabbaim;
 
@@ -359,7 +372,6 @@ async function submitApplication() {
             }
             updateModalFooter(false, true);
 
-            // Refresh search results after a delay
             setTimeout(() => {
                 closeApplyModal();
                 performSearch(currentPage);
@@ -395,18 +407,15 @@ function displayPagination(currentPage, totalPages, totalResults) {
     const pagination = document.createElement('div');
     pagination.className = 'pagination';
 
-    // Results info
     const info = document.createElement('div');
     info.className = 'pagination-info';
     const start = currentPage * PAGE_SIZE + 1;
     const end = Math.min((currentPage + 1) * PAGE_SIZE, totalResults);
     info.textContent = `Showing ${start}-${end} of ${totalResults} results`;
 
-    // Buttons container
     const buttons = document.createElement('div');
     buttons.className = 'pagination-buttons';
 
-    // Previous button
     const prevBtn = document.createElement('button');
     prevBtn.className = 'btn-page';
     prevBtn.textContent = '← Previous';
@@ -414,7 +423,6 @@ function displayPagination(currentPage, totalPages, totalResults) {
     prevBtn.onclick = () => performSearch(currentPage - 1);
     buttons.appendChild(prevBtn);
 
-    // Page numbers
     const maxPageButtons = 5;
     let startPage = Math.max(0, currentPage - Math.floor(maxPageButtons / 2));
     let endPage = Math.min(totalPages, startPage + maxPageButtons);
@@ -464,7 +472,6 @@ function displayPagination(currentPage, totalPages, totalResults) {
         buttons.appendChild(lastBtn);
     }
 
-    // Next button
     const nextBtn = document.createElement('button');
     nextBtn.className = 'btn-page';
     nextBtn.textContent = 'Next →';
@@ -490,10 +497,6 @@ function showLoading() {
 
 function hideLoading() {
     document.getElementById('search-loading').classList.add('hidden');
-}
-
-function showResults() {
-    document.getElementById('results-container').classList.remove('hidden');
 }
 
 function hideResults() {

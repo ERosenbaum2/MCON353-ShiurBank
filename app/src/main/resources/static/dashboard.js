@@ -19,9 +19,13 @@ document.addEventListener('DOMContentLoaded', async function() {
 // Check authentication and load user info
 async function checkAuthAndLoadUser() {
     try {
-        const response = await fetch('/api/current-user');
+        const response = await fetch('/api/current-user', {
+            credentials: 'include'
+        });
+
         if (response.ok) {
             const data = await response.json();
+
             if (data.loggedIn) {
                 // User is logged in, display username and show content
                 document.getElementById('username-display').textContent = data.username;
@@ -29,15 +33,22 @@ async function checkAuthAndLoadUser() {
                 document.getElementById('dashboard-main').classList.remove('hidden');
             } else {
                 // User is not logged in, redirect to home page
-                window.location.href = '/index.html';
+                // Only redirect if we're not already on the index page
+                if (window.location.pathname !== '/index.html' && window.location.pathname !== '/') {
+                    window.location.href = '/index.html';
+                }
             }
         } else {
             // Error checking auth, redirect to home page
-            window.location.href = '/index.html';
+            if (window.location.pathname !== '/index.html' && window.location.pathname !== '/') {
+                window.location.href = '/index.html';
+            }
         }
     } catch (error) {
         console.error('Error checking authentication:', error);
-        window.location.href = '/index.html';
+        if (window.location.pathname !== '/index.html' && window.location.pathname !== '/') {
+            window.location.href = '/index.html';
+        }
     }
 }
 
@@ -48,7 +59,8 @@ async function handleLogout() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
-            }
+            },
+            credentials: 'include'
         });
 
         const data = await response.json();
@@ -77,7 +89,9 @@ function wireCreateSeriesButton() {
 // Check admin status and show admin link if user is admin
 async function checkAdminStatus() {
     try {
-        const response = await fetch('/api/admin/check');
+        const response = await fetch('/api/admin/check', {
+            credentials: 'include'
+        });
         if (response.ok) {
             const data = await response.json();
             if (data.isAdmin) {
@@ -102,7 +116,9 @@ async function loadMySeries() {
     listEl.textContent = 'Loading your series...';
 
     try {
-        const resp = await fetch('/api/my-series');
+        const resp = await fetch('/api/my-series', {
+            credentials: 'include'
+        });
         if (!resp.ok) {
             listEl.textContent = 'Could not load your series.';
             return;
